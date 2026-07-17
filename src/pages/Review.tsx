@@ -1,6 +1,12 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useInfluencerList, useNegotiationListAll } from "@/lib/influencer-api";
+import {
+  useInfluencerList,
+  useNegotiationListAll,
+  useScriptReviewListAll,
+  useVideoReviewListAll,
+  usePostListAll,
+} from "@/lib/influencer-api";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
 import InfluencerDetail from "@/components/InfluencerDetail";
@@ -103,21 +109,25 @@ export default function Review() {
   // Fetch ALL influencers directly (not via categories) so uncategorized ones also show
   const { data: listData } = useInfluencerList({});
   const { data: allNegotiations } = useNegotiationListAll();
+  const { data: allScriptReviews = [] } = useScriptReviewListAll();
+  const { data: allVideoReviews = [] } = useVideoReviewListAll();
+  const { data: allPosts = [] } = usePostListAll();
 
   const allInfluencers = useMemo(() => {
     return (listData?.items || []).filter((item: any) => item != null && item.id != null);
   }, [listData]);
 
-  // Merge price data from negotiations
+  // Latest negotiation round per influencer — used for price display AND
+  // for detecting a price quote that is still waiting for admin review
   const latestPriceMap = useMemo(() => {
     const map = new Map<number, { userPrice: number; adminPrice: number }>();
     if (!allNegotiations) return map;
     for (const n of allNegotiations) {
       if (!n || n.influencerId == null) continue;
-      const existing = map.get(n.influencerId) || { userPrice: 0, adminPrice: 0 };
-      if (n.userPrice > 0) existing.userPrice = n.userPrice;
-      if (n.adminPrice > 0) existing.adminPrice = n.adminPrice;
-      map.set(n.influencerId, existing);
+      const existing = map.get(n.influencerId);
+      if (!existing || n.round > existing.round) {
+        map.set(n.influencerId, { userPrice: n.userPrice ?? 0, adminPrice: n.adminPrice ?? 0, round: n.round });
+      }
     }
     return map;
   }, [allNegotiations]);
@@ -125,9 +135,54 @@ export default function Review() {
   const influencersWithPrices = useMemo(() => {
     return allInfluencers.map((inf: any) => {
       const prices = latestPriceMap.get(inf.id);
-      return prices ? { ...inf, ...prices } : inf;
+      return prices ? { ...inf, userPrice: prices.userPrice, adminPrice: prices.adminPrice } : inf;
     });
   }, [allInfluencers, latestPriceMap]);
+
+  // ─── Pending-review classification ──────────────────────────
+  // A card belongs to a review tab ONLY when it has a concrete pending
+  // item of that type — never inferred from coopStatus.
+  // 报价: latest negotiation round has a user quote but no admin price yet
+  const pricePendingIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const [id, p] of latestPriceMap) {
+      if (p.userPrice > 0 && !(p.adminPrice > 0)) ids.add(id);
+    }
+    return ids;
+  }, [latestPriceMap]);
+
+  // 脚本/视频: a review record with status "pending" exists
+  const scriptPendingIds = useMemo(() => {
+    return new Set<number>(
+      (allScriptReviews || [])
+        .filter((r: any) => r && r.status === "pending" && r.influencerId != null)
+        .map((r: any) => r.influencerId)
+    );
+  }, [allScriptReviews]);
+
+  const videoPendingIds = useMemo(() => {
+    return new Set<number>(
+      (allVideoReviews || [])
+        .filter((r: any) => r && r.status === "pending" && r.influencerId != null)
+        .map((r: any) => r.influencerId)
+    );
+  }, [allVideoReviews]);
+
+  // 发布: a post record with status "pending" exists
+  const postPendingIds = useMemo(() => {
+    return new Set<number>(
+      (allPosts || [])
+        .filter((p: any) => p && p.status === "pending" && p.influencerId != null)
+        .map((p: any) => p.influencerId)
+    );
+  }, [allPosts]);
+
+  const pendingMap = useMemo(() => ({
+    price: pricePendingIds,
+    script: scriptPendingIds,
+    video: videoPendingIds,
+    post: postPendingIds,
+  }), [pricePendingIds, scriptPendingIds, videoPendingIds, postPendingIds]);
 
   const tabConfig = [
     { key: "price" as const, label: "报价审核", icon: Handshake, desc: "网红已提交报价，等待管理员审核" },
@@ -136,16 +191,11 @@ export default function Review() {
     { key: "post" as const, label: "发布审核", icon: BarChart3, desc: "发布记录待审核确认" },
   ];
 
-  // Filter by review tab
+  // Filter by review tab — driven purely by concrete pending items
   const filteredForReview = useMemo(() => {
-    return influencersWithPrices.filter((inf: any) => {
-      if (reviewTab === "price") return inf.userPrice > 0;
-      if (reviewTab === "script") return inf.coopStatus !== "not-cooperating";
-      if (reviewTab === "video") return inf.coopStatus !== "not-cooperating";
-      if (reviewTab === "post") return inf.adminPrice > 0;
-      return true;
-    });
-  }, [influencersWithPrices, reviewTab]);
+    const ids = pendingMap[reviewTab];
+    return influencersWithPrices.filter((inf: any) => ids.has(inf.id));
+  }, [influencersWithPrices, reviewTab, pendingMap]);
 
   return (
     <div className="space-y-6">
@@ -161,13 +211,7 @@ export default function Review() {
         {tabConfig.map((tab) => {
           const Icon = tab.icon;
           const isActive = reviewTab === tab.key;
-          const count = influencersWithPrices.filter((inf: any) => {
-            if (tab.key === "price") return inf.userPrice > 0;
-            if (tab.key === "script") return inf.coopStatus !== "not-cooperating";
-            if (tab.key === "video") return inf.coopStatus !== "not-cooperating";
-            if (tab.key === "post") return inf.adminPrice > 0;
-            return false;
-          }).length;
+          const count = pendingMap[tab.key].size;
           return (
             <button
               key={tab.key}

@@ -21,6 +21,18 @@ export const scriptReviewRouter = createRouter({
         .orderBy(asc(scriptReviews.round));
     }),
 
+  // List all script reviews across influencers (for the review center)
+  listAll: publicQuery
+    .query(async ({ ctx }) => {
+      const db = getDb();
+      const isTestTarget = ctx.testMode ? 1 : 0;
+      return db
+        .select()
+        .from(scriptReviews)
+        .where(eq(scriptReviews.isTest, isTestTarget))
+        .orderBy(asc(scriptReviews.round));
+    }),
+
   create: authedQuery
     .input(z.object({
       influencerId: z.number(),

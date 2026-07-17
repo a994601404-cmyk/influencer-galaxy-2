@@ -127,6 +127,7 @@ export function useCreateNegotiation() {
   return trpc.negotiation.create.useMutation({
     onSuccess: (_, vars) => {
       utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
+      utils.negotiation.listAll.invalidate();
     },
   });
 }
@@ -136,6 +137,7 @@ export function useUpdateNegotiation() {
   return trpc.negotiation.update.useMutation({
     onSuccess: (_, vars) => {
       utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
+      utils.negotiation.listAll.invalidate();
       utils.influencer.list.invalidate();
     },
   });
@@ -188,6 +190,16 @@ export function useDeletePost() {
 
 export function usePostListAll() {
   return trpc.post.listAll.useQuery();
+}
+
+export function useReviewPost() {
+  const utils = trpc.useUtils();
+  return trpc.post.review.useMutation({
+    onSuccess: () => {
+      utils.post.list.invalidate();
+      utils.post.listAll.invalidate();
+    },
+  });
 }
 
 // ─── Hashtag Hooks (话题追踪) ───────────────────────────────
@@ -245,11 +257,16 @@ export function useScriptReviewList(influencerId: number | null) {
   );
 }
 
+export function useScriptReviewListAll() {
+  return trpc.scriptReview.listAll.useQuery();
+}
+
 export function useCreateScriptReview() {
   const utils = trpc.useUtils();
   return trpc.scriptReview.create.useMutation({
     onSuccess: (_, vars) => {
       utils.scriptReview.list.invalidate({ influencerId: vars.influencerId });
+      utils.scriptReview.listAll.invalidate();
     },
   });
 }
@@ -257,7 +274,10 @@ export function useCreateScriptReview() {
 export function useReviewScript() {
   const utils = trpc.useUtils();
   return trpc.scriptReview.review.useMutation({
-    onSuccess: () => utils.scriptReview.list.invalidate(),
+    onSuccess: () => {
+      utils.scriptReview.list.invalidate();
+      utils.scriptReview.listAll.invalidate();
+    },
   });
 }
 
@@ -270,11 +290,16 @@ export function useVideoReviewList(influencerId: number | null) {
   );
 }
 
+export function useVideoReviewListAll() {
+  return trpc.videoReview.listAll.useQuery();
+}
+
 export function useCreateVideoReview() {
   const utils = trpc.useUtils();
   return trpc.videoReview.create.useMutation({
     onSuccess: (_, vars) => {
       utils.videoReview.list.invalidate({ influencerId: vars.influencerId });
+      utils.videoReview.listAll.invalidate();
     },
   });
 }
@@ -282,7 +307,10 @@ export function useCreateVideoReview() {
 export function useReviewVideo() {
   const utils = trpc.useUtils();
   return trpc.videoReview.review.useMutation({
-    onSuccess: () => utils.videoReview.list.invalidate(),
+    onSuccess: () => {
+      utils.videoReview.list.invalidate();
+      utils.videoReview.listAll.invalidate();
+    },
   });
 }
 

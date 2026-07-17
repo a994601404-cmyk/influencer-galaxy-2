@@ -21,6 +21,18 @@ export const videoReviewRouter = createRouter({
         .orderBy(asc(videoReviews.round));
     }),
 
+  // List all video reviews across influencers (for the review center)
+  listAll: publicQuery
+    .query(async ({ ctx }) => {
+      const db = getDb();
+      const isTestTarget = ctx.testMode ? 1 : 0;
+      return db
+        .select()
+        .from(videoReviews)
+        .where(eq(videoReviews.isTest, isTestTarget))
+        .orderBy(asc(videoReviews.round));
+    }),
+
   create: authedQuery
     .input(z.object({
       influencerId: z.number(),

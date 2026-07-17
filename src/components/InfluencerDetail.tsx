@@ -31,6 +31,7 @@ import {
   usePostList,
   useCreatePost,
   useDeletePost,
+  useReviewPost,
   useUpdateInfluencer,
 } from "@/lib/influencer-api";
 import {
@@ -144,6 +145,9 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   const { data: posts = [] } = usePostList(infId);
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
+  const reviewPostMut = useReviewPost();
+  const [reviewingPostId, setReviewingPostId] = useState<number | null>(null);
+  const [postAdminNote, setPostAdminNote] = useState("");
 
   // ─── Cooperation Types helpers ────────────────────────────
   const toggleDetailCoopType = (platform: string, type: string) => {
@@ -248,6 +252,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
     setEditingAdminPriceId(null); setEditingNoteId(null);
     setEditingCoopTypes(false); setTempCoopTypes([]);
     setReviewingScriptId(null); setReviewingVideoId(null);
+    setReviewingPostId(null); setPostAdminNote("");
     setShowPostForm(false); setPostVideoUrl(""); setPostNextDayExp(""); setPostSevenDayExp("");
     setPostLikes(""); setPostComments(""); setPostShares(""); setPostNotes("");
     handleTabChange("price");
@@ -348,6 +353,12 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   const handleReviewScript = (id: number, status: "approved" | "rejected") => {
     reviewScriptMut.mutate({ id, status, adminNote: scriptAdminNote }, {
       onSuccess: () => { setScriptAdminNote(""); setReviewingScriptId(null); }
+    });
+  };
+
+  const handleReviewPost = (id: number, status: "approved" | "rejected") => {
+    reviewPostMut.mutate({ id, status, adminNote: postAdminNote }, {
+      onSuccess: () => { setPostAdminNote(""); setReviewingPostId(null); }
     });
   };
 
@@ -975,6 +986,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">{p.createdAt}</span>
+                          <StatusBadge status={p.status || "pending"} />
                           {cpm7d && (
                             <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#06b6d4]/10 text-[#06b6d4] font-medium">CPM ${cpm7d}</span>
                           )}
@@ -1015,6 +1027,40 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                         </div>
                       </div>
                       {p.notes && <p className="text-[10px] text-[#888] border-t border-white/[0.04] pt-2">{p.notes}</p>}
+                      {(p.status ?? "pending") === "pending" && isAdmin && (
+                        <div className="border-t border-white/[0.06] mt-2 pt-3 space-y-2">
+                          {reviewingPostId === p.id ? (
+                            <>
+                              <textarea value={postAdminNote} onChange={(e) => setPostAdminNote(e.target.value)} placeholder="管理员意见..."
+                                rows={2} className="w-full bg-[#0a0a0a] border border-[#ccff00]/15 rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                              <div className="flex gap-2">
+                                <button onClick={() => handleReviewPost(p.id, "approved")}
+                                  className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 flex items-center justify-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />通过
+                                </button>
+                                <button onClick={() => handleReviewPost(p.id, "rejected")}
+                                  className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 flex items-center justify-center gap-1">
+                                  <XCircle className="w-3.5 h-3.5" />不通过
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <button onClick={() => setReviewingPostId(p.id)}
+                              className="w-full py-2 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/20">
+                              审核此发布
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {(p.status ?? "pending") !== "pending" && (
+                        <div className="border-t border-white/[0.06] mt-2 pt-3">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <StatusBadge status={p.status} />
+                            <span className="text-[9px] text-[#666]">{p.reviewedAt}</span>
+                          </div>
+                          {p.adminNote && <p className="text-[11px] text-[#aaa]">{p.adminNote}</p>}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

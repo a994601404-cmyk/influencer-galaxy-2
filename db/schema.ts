@@ -259,6 +259,9 @@ export const postRecords = mysqlTable("postRecords", {
   isTest: int("isTest").default(0), // 0 = production, 1 = test data
   createdAt: varchar("createdAt", { length: 20 }).notNull(), // YYYY-MM-DD
   createdByUnionId: varchar("createdByUnionId", { length: 320 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending"),
+  adminNote: text("adminNote"),
+  reviewedAt: varchar("reviewedAt", { length: 20 }),
 });
 
 export type PostRecord = typeof postRecords.$inferSelect;
