@@ -71,3 +71,10 @@ export default defineConfig([
   },
 ])
 ```
+
+## Deployment
+
+Live at https://influencer-galaxy.vercel.app — hosted on Vercel.
+
+Every push to `main` triggers an automatic production deployment.
+Backend API runs as a single serverless function (`api/index.ts` → `server/`).
