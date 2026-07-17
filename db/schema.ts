@@ -24,6 +24,9 @@ export const users = mysqlTable("users", {
     .notNull()
     .$onUpdate(() => new Date()),
   lastSignInAt: timestamp("lastSignInAt").defaultNow().notNull(),
+  // Local email/password auth (scrypt). NULL for OAuth-only accounts.
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  passwordSalt: varchar("passwordSalt", { length: 255 }),
 });
 
 export type User = typeof users.$inferSelect;

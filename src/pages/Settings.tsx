@@ -11,6 +11,7 @@ import {
 } from "@/lib/config-service";
 import { useApiConfigStatus } from "@/lib/config-service";
 import { useCleanupTestData } from "@/lib/influencer-api";
+import { ChangePasswordCard, AdminResetPasswordCard } from "@/components/SecuritySettings";
 import { trpc } from "@/providers/trpc";
 import {
   Settings as SettingsIcon,
@@ -173,6 +174,11 @@ export default function Settings() {
           <p className="text-xs text-[#666]">只有管理员可以配置 API Key</p>
         </div>
 
+        {/* Change own password — available to all logged-in users */}
+        <div className="mt-6">
+          <ChangePasswordCard />
+        </div>
+
         {/* Status overview for non-admin */}
         <div className="mt-6 space-y-3">
           <h2 className="text-sm font-bold text-white">API 状态</h2>
@@ -273,6 +279,10 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {/* Security: change my password + admin reset of user passwords */}
+      <ChangePasswordCard />
+      <AdminResetPasswordCard />
 
       {/* Alert message */}
       {message && (

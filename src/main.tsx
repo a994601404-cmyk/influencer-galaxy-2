@@ -1,13 +1,14 @@
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createHashRouter, Navigate } from 'react-router'
 import './index.css'
-import { seedAdminAccount } from './lib/local-auth'
 import { TRPCProvider } from '@/providers/trpc'
 import AuthGuard from '@/components/AuthGuard'
 import AppLayout from './components/AppLayout'
 
-// Seed admin account on app start
-seedAdminAccount()
+// One-time cleanup of the legacy localStorage-based auth (replaced by server-side auth)
+localStorage.removeItem('pulseboost_auth_v1')
+localStorage.removeItem('pulseboost_users_v1')
+localStorage.removeItem('pulseboost_admin_seeded')
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'

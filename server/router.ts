@@ -1,5 +1,5 @@
 import { authRouter } from "./auth-router.js";
-import { createRouter, publicQuery } from "./middleware.js";
+import { createRouter, publicQuery, adminQuery } from "./middleware.js";
 import { influencerRouter } from "./influencer-router.js";
 import { negotiationRouter } from "./negotiation-router.js";
 import { scriptReviewRouter } from "./script-review-router.js";
@@ -22,7 +22,7 @@ import { cardCategoryRouter } from "./card-category-router.js";
 
 export const appRouter = createRouter({
   ping: publicQuery.query(() => ({ ok: true, ts: Date.now() })),
-  diag: publicQuery.query(async () => {
+  diag: adminQuery.query(async () => {
     const mysql = await import("mysql2/promise");
     const url = process.env.DATABASE_URL || "";
     const masked = url.replace(/\/\/[^:]+:[^@]+@/, "//***:***@");

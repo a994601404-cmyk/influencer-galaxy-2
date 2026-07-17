@@ -1,20 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "./useAuth";
 
-// Build SSE token from local auth
-function getSseToken(): string | null {
-  try {
-    const raw = localStorage.getItem("pulseboost_auth_v1");
-    if (!raw) return null;
-    const auth = JSON.parse(raw);
-    const user = auth?.user;
-    if (!user?.email) return null;
-    return btoa(JSON.stringify({ name: user.name || "", email: user.email, role: user.role || "user" }));
-  } catch {
-    return null;
-  }
-}
-
 type OnNotification = (data: {
   type: string;
   id: number;
@@ -27,7 +13,7 @@ type OnNotification = (data: {
 
 /**
  * Real-time notification delivery using SSE with polling fallback.
- * - Tries SSE first for true real-time push
+ * - Tries SSE first for true real-time push (same-origin, session-cookie auth)
  * - Falls back to 3-second polling if SSE fails or disconnects
  */
 export function useNotificationRealtime(onNotification: OnNotification) {
@@ -66,15 +52,8 @@ export function useNotificationRealtime(onNotification: OnNotification) {
       return;
     }
 
-    const token = getSseToken();
-    if (!token) {
-      startPolling();
-      return;
-    }
-
-    // Try SSE first
-    const sseUrl = `https://b4uv3gij4o2yg.kimi.site/api/sse/notifications?token=${encodeURIComponent(token)}`;
-    const es = new EventSource(sseUrl);
+    // Same-origin SSE — the signed session cookie authenticates the stream
+    const es = new EventSource("/api/sse/notifications");
     eventSourceRef.current = es;
 
     let connectedOnce = false;

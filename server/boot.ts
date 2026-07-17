@@ -6,7 +6,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router.js";
 import { createContext } from "./context.js";
 import { env } from "./lib/env.js";
-import { createOAuthCallbackHandler } from "./kimi/auth.js";
+import { createOAuthCallbackHandler, authenticateRequest } from "./kimi/auth.js";
 import { Paths } from "../contracts/constants.js";
 import { addConnection, removeConnection } from "./sse-manager.js";
 import { Buffer } from "buffer";
@@ -27,26 +27,22 @@ app.use("/*", cors({
     if (origin.includes("kimi.site")) return origin;
     return "*";
   },
-  allowHeaders: ["Content-Type", "Authorization", "x-local-auth-meta", "x-local-auth-token"],
+  allowHeaders: ["Content-Type", "Authorization"],
   allowMethods: ["POST", "GET", "OPTIONS"],
   credentials: true,
-  exposeHeaders: ["x-local-auth-meta", "x-local-auth-token"],
 }));
 
 // SSE endpoint for real-time notifications
 // Registered BEFORE tRPC catch-all to avoid being intercepted
+// Auth: signed session cookie only (same-origin EventSource sends cookies).
 app.get("/api/sse/notifications", async (c) => {
-  const url = new URL(c.req.url);
-  const token = url.searchParams.get("token");
-  if (!token) return c.json({ error: "Missing token" }, 401);
-
-  // Decode base64 auth meta from token param
   let unionId: string;
   try {
-    const meta = JSON.parse(Buffer.from(token, "base64").toString("utf-8"));
-    unionId = `local_${meta.email}`;
+    const user = await authenticateRequest(c.req.raw.headers);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+    unionId = user.unionId;
   } catch {
-    return c.json({ error: "Invalid token" }, 401);
+    return c.json({ error: "Unauthorized" }, 401);
   }
 
   const stream = new ReadableStream({

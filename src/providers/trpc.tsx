@@ -16,33 +16,11 @@ const API_URL = typeof window !== "undefined" && window.location.hostname.includ
   ? `${window.location.origin}/api/trpc`
   : "/api/trpc";
 
-// Read local auth data from localStorage for header injection
-// We send actual user metadata (not just a token) so the backend
-// never needs to hardcode any role or user info.
-function getLocalAuthHeaders(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem("pulseboost_auth_v1");
-    if (!raw) return {};
-    const auth = JSON.parse(raw);
-    const user = auth?.user;
-    const token = auth?.token; // token is stored at the top level, NOT inside user
-    if (!user || !token) return {};
-    const meta = {
-      name: user.name || "",
-      email: user.email || "",
-      role: user.role || "user",
-    };
-    const headers: Record<string, string> = {
-      "x-local-auth-token": String(token),
-      "x-local-auth-meta": btoa(JSON.stringify(meta)),
-    };
-    // Pass test mode flag to backend
-    if (isTestMode()) {
-      headers["x-test-mode"] = "1";
-    }
-    return headers;
-  } catch {
-    // ignore
+// Identity is carried exclusively by the signed session cookie
+// (credentials: "include"). Never send client-asserted identity headers.
+function getRequestHeaders(): Record<string, string> {
+  if (isTestMode()) {
+    return { "x-test-mode": "1" };
   }
   return {};
 }
@@ -53,7 +31,7 @@ const trpcClient = trpc.createClient({
       url: API_URL,
       transformer: superjson,
       headers() {
-        return getLocalAuthHeaders();
+        return getRequestHeaders();
       },
       fetch(input, init) {
         return globalThis.fetch(input, {
