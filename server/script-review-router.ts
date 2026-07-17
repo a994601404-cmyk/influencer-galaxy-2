@@ -79,7 +79,7 @@ export const scriptReviewRouter = createRouter({
       status: z.enum(["approved", "rejected"]),
       adminNote: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const now = new Date().toISOString().split("T")[0];
       await db.update(scriptReviews).set({
@@ -105,7 +105,7 @@ export const scriptReviewRouter = createRouter({
             isTest: ctx.testMode,
           });
         }
-      } catch { /* ignore */ }
+      } catch (e) { console.error("[ScriptReview] notify error:", e); }
 
       return row[0];
     }),

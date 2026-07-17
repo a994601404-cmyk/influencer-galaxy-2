@@ -52,10 +52,15 @@ function calcTargetDimensions(origW: number, origH: number) {
 function calcBitrate(width: number, height: number): number {
   const pixels = width * height;
   const basePixels = 1280 * 720; // 720p baseline
-  const baseBitrate = 3 * 1024 * 1024; // 3 Mbps base for 720p
-  const scale = Math.min(pixels / basePixels, 2.5); // cap at 2.5x
+  // Reduced from 3Mbps to 1.5Mbps for faster compression & smaller files
+  // 720p web video at 1.5Mbps looks good enough
+  const baseBitrate = 1.5 * 1024 * 1024;
+  const scale = Math.min(pixels / basePixels, 2.0); // cap at 2x
   return Math.round(baseBitrate * scale);
 }
+
+// Target frame rate for output — lower = faster compression
+const TARGET_FPS = 24;
 
 /**
  * Compress a video file client-side.
@@ -82,12 +87,12 @@ export function compressVideo(
     video.crossOrigin = "anonymous";
 
     let recorder: MediaRecorder | null = null;
-    let animationId = 0;
+    let drawInterval: ReturnType<typeof setInterval> | null = null;
     let safetyTimer: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
       URL.revokeObjectURL(url);
-      if (animationId) cancelAnimationFrame(animationId);
+      if (drawInterval) clearInterval(drawInterval);
       if (safetyTimer) clearTimeout(safetyTimer);
       video.pause();
       video.src = "";
@@ -129,9 +134,9 @@ export function compressVideo(
         return;
       }
 
-      // Build output stream: video from canvas + audio from source video
-      const canvasStream = canvas.captureStream();
-      let outputStream = canvasStream;
+      // Build output stream: canvas video + audio from source
+      const canvasStream = canvas.captureStream(TARGET_FPS);
+      let outputStream: MediaStream = canvasStream;
 
       try {
         const videoStream = (video as any).captureStream?.();
@@ -195,9 +200,14 @@ export function compressVideo(
       const startRecording = () => {
         recorder!.start(100); // collect every 100ms
 
-        // Draw loop
-        const draw = () => {
-          if (video.ended || video.paused) return;
+        // Draw loop at TARGET_FPS (fixed interval, not requestAnimationFrame)
+        // This reduces CPU load and speeds up compression significantly
+        const frameInterval = 1000 / TARGET_FPS;
+        drawInterval = setInterval(() => {
+          if (video.ended || video.paused) {
+            if (recorder && recorder.state === "recording") recorder.stop();
+            return;
+          }
           ctx.drawImage(video, 0, 0, targetW, targetH);
 
           // Progress
@@ -205,18 +215,11 @@ export function compressVideo(
             const pct = Math.min(95, Math.round((video.currentTime / duration) * 90));
             report("compressing", pct, `压缩中 ${Math.round(video.currentTime)}s / ${Math.round(duration)}s`);
           }
-
-          animationId = requestAnimationFrame(draw);
-        };
-
-        video.onplay = () => {
-          animationId = requestAnimationFrame(draw);
-        };
+        }, frameInterval);
 
         video.onended = () => {
-          if (recorder && recorder.state === "recording") {
-            recorder.stop();
-          }
+          if (drawInterval) clearInterval(drawInterval);
+          if (recorder && recorder.state === "recording") recorder.stop();
         };
 
         video.play().catch((e) => {
@@ -226,9 +229,8 @@ export function compressVideo(
 
         // Safety timeout
         safetyTimer = setTimeout(() => {
-          if (recorder && recorder.state === "recording") {
-            recorder.stop();
-          }
+          if (drawInterval) clearInterval(drawInterval);
+          if (recorder && recorder.state === "recording") recorder.stop();
         }, Math.max((duration + 10) * 1000, 30000));
       };
 

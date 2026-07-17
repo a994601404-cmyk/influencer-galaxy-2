@@ -22,6 +22,7 @@ app.use("/*", cors({
   origin: (origin) => {
     if (!origin) return "*";
     if (origin.match(/^https:\/\/[a-z0-9-]+\.ok\.kimi\.link$/i)) return origin;
+    if (origin.match(/^https:\/\/(www\.)?influencergalaxy\.app$/i)) return origin;
     if (origin.includes("localhost")) return origin;
     if (origin.includes("kimi.site")) return origin;
     return "*";

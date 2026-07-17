@@ -81,7 +81,7 @@ export const videoReviewRouter = createRouter({
       status: z.enum(["approved", "rejected"]),
       adminNote: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const now = new Date().toISOString().split("T")[0];
       await db.update(videoReviews).set({
@@ -107,7 +107,7 @@ export const videoReviewRouter = createRouter({
             isTest: ctx.testMode,
           });
         }
-      } catch { /* ignore */ }
+      } catch (e) { console.error("[VideoReview] notify error:", e); }
 
       return row[0];
     }),

@@ -14,6 +14,7 @@ import {
   X,
   Shield,
   Settings as SettingsIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,8 @@ const navItems = [
   { path: "/influencers", label: "网红", icon: Users },
   { path: "/analytics", label: "数据", icon: BarChart3 },
 ];
+
+const reviewNavItem = { path: "/review", label: "审核", icon: ShieldCheck };
 
 const adminNavItem = { path: "/settings", label: "设置", icon: SettingsIcon };
 
@@ -66,16 +69,24 @@ export default function AppLayout() {
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex items-center gap-0.5">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.path} to={item.path} className={`nav-item ${isActive ? "active" : ""}`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                <Link to="/" className={`nav-item ${location.pathname === "/" ? "active" : ""}`}>
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">工作台</span>
+                </Link>
+                {isAdmin && (
+                  <Link to="/review" className={`nav-item ${location.pathname === "/review" ? "active" : ""}`}>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">审核</span>
+                  </Link>
+                )}
+                <Link to="/influencers" className={`nav-item ${location.pathname === "/influencers" ? "active" : ""}`}>
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">网红</span>
+                </Link>
+                <Link to="/analytics" className={`nav-item ${location.pathname === "/analytics" ? "active" : ""}`}>
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">数据</span>
+                </Link>
                 <Link
                   to="/settings"
                   className={`nav-item ${location.pathname === "/settings" ? "active" : ""}`}
@@ -123,16 +134,24 @@ export default function AppLayout() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-white/[0.05] bg-[#0a0a0a]/95 backdrop-blur-xl">
             <nav className="px-4 py-2 space-y-0.5">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                const Icon = item.icon;
-                return (
-                  <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${isActive ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
-                    <Icon className="w-4 h-4" />{item.label}
-                  </Link>
-                );
-              })}
+              <Link to="/" onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                <LayoutDashboard className="w-4 h-4" />工作台
+              </Link>
+              {isAdmin && (
+                <Link to="/review" onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/review" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                  <ShieldCheck className="w-4 h-4" />审核
+                </Link>
+              )}
+              <Link to="/influencers" onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/influencers" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                <Users className="w-4 h-4" />网红
+              </Link>
+              <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/analytics" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                <BarChart3 className="w-4 h-4" />数据
+              </Link>
               <Link
                 to="/settings"
                 onClick={() => setMobileMenuOpen(false)}

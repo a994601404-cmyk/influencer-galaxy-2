@@ -6,51 +6,63 @@ import mysql from "mysql2/promise";
 
 const fullSchema = { ...schema, ...relations };
 
-// Parse DATABASE_URL into an explicit mysql2 config.
-// Hosts like PlanetScale require TLS, but their `sslaccept` URL parameter
-// is silently ignored by mysql2 ("Ignoring invalid configuration option"),
-// which makes drizzle connect over plaintext and get rejected by the server.
-// Translate the URL's SSL intent into a real `ssl` option.
+// Parse DATABASE_URL
 function parseDbUrl(url: string) {
-  const u = new URL(url);
-  const sslHint =
-    u.searchParams.get("sslaccept") ??
-    u.searchParams.get("ssl") ??
-    u.searchParams.get("sslmode");
-  const wantsSsl = !!sslHint && !["false", "disabled"].includes(sslHint.toLowerCase());
-  return {
-    host: u.hostname,
-    port: u.port ? parseInt(u.port) : 3306,
-    user: decodeURIComponent(u.username),
-    password: decodeURIComponent(u.password),
-    database: u.pathname.replace(/^\//, ""),
-    connectTimeout: 15000,
-    ...(wantsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
-  };
+  const match = url.match(/mysql:\/\/([^:]+):([^@]+)@([^:\/]+)(?::(\d+))?\/(.+?)(?:\?|$)/);
+  if (!match) throw new Error("Invalid DATABASE_URL format: " + url.substring(0, 30) + "...");
+  const [, user, password, host, portStr, database] = match;
+  return { user, password, host, port: portStr ? parseInt(portStr) : 3306, database: database.split("?")[0] };
 }
 
-let instance: ReturnType<typeof drizzle<typeof fullSchema>> | null = null;
+// Create mysql2 pool with SSL support for TiDB Cloud
+function createPool() {
+  const cfg = parseDbUrl(env.databaseUrl);
+  return mysql.createPool({
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    password: cfg.password,
+    database: cfg.database,
+    ssl: { rejectUnauthorized: false },
+    connectionLimit: 5,
+    queueLimit: 0,
+    waitForConnections: true,
+    connectTimeout: 30000,
+    enableKeepAlive: true,
+  });
+}
+
+let pool: mysql.Pool | null = null;
+let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
 
 export function getDb() {
   if (!instance) {
-    const pool = mysql.createPool({
-      ...parseDbUrl(env.databaseUrl),
-      // Serverless: keep the pool tiny so warm instances don't exhaust DB connections
-      connectionLimit: 2,
-    });
+    pool = createPool();
     instance = drizzle(pool, {
-      mode: "planetscale",
+      mode: "default",
       schema: fullSchema,
     });
   }
   return instance;
 }
 
-// Raw mysql2 connection for operations that need direct SQL
+// Raw mysql2 connection with auto-reconnect
 let rawConn: mysql.Connection | null = null;
+
 export async function getRawConnection(): Promise<mysql.Connection> {
-  if (!rawConn) {
-    rawConn = await mysql.createConnection(parseDbUrl(env.databaseUrl));
+  if (rawConn) {
+    try {
+      await rawConn.execute("SELECT 1");
+      return rawConn;
+    } catch {
+      try { await rawConn.end(); } catch { /* ignore */ }
+      rawConn = null;
+    }
   }
+  const cfg = parseDbUrl(env.databaseUrl);
+  rawConn = await mysql.createConnection({
+    host: cfg.host, port: cfg.port, user: cfg.user, password: cfg.password, database: cfg.database,
+    ssl: { rejectUnauthorized: false }, connectTimeout: 30000,
+  });
   return rawConn;
 }

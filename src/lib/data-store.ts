@@ -186,7 +186,10 @@ export function save(key: string, data: unknown) {
 export function getAllInfluencersRaw(): Influencer[] {
   const existing = localStorage.getItem(STORAGE_KEYS.influencers);
   if (existing) {
-    try { return JSON.parse(existing); } catch { /* fall through */ }
+    try {
+      const parsed = JSON.parse(existing);
+      if (Array.isArray(parsed)) return parsed.filter((i: any) => i != null && i.id != null);
+    } catch { /* fall through */ }
   }
   return [];
 }

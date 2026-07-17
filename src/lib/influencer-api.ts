@@ -114,10 +114,11 @@ export function useNegotiationList(influencerId: number | null) {
   );
 }
 
-export function useNegotiationListAll(influencerIds: number[]) {
+export function useNegotiationListAll(influencerIds?: number[]) {
+  const ids = influencerIds || [];
   return trpc.negotiation.listAll.useQuery(
-    { influencerIds },
-    { enabled: influencerIds.length > 0 }
+    { influencerIds: ids },
+    { enabled: ids.length > 0 }
   );
 }
 
@@ -130,10 +131,108 @@ export function useCreateNegotiation() {
   });
 }
 
+export function useUpdateNegotiation() {
+  const utils = trpc.useUtils();
+  return trpc.negotiation.update.useMutation({
+    onSuccess: (_, vars) => {
+      utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
+      utils.influencer.list.invalidate();
+    },
+  });
+}
+
 export function useDeleteNegotiation() {
   const utils = trpc.useUtils();
   return trpc.negotiation.delete.useMutation({
     onSuccess: () => utils.negotiation.list.invalidate(),
+  });
+}
+
+// ─── Post Record Hooks (发布记录) ────────────────────────────
+export function usePostList(influencerId: number | null) {
+  return trpc.post.list.useQuery(
+    { influencerId: influencerId! },
+    { enabled: !!influencerId }
+  );
+}
+
+export function useCreatePost() {
+  const utils = trpc.useUtils();
+  return trpc.post.create.useMutation({
+    onSuccess: (_, vars) => {
+      utils.post.list.invalidate({ influencerId: vars.influencerId });
+      utils.post.listAll.invalidate();
+    },
+  });
+}
+
+export function useUpdatePost() {
+  const utils = trpc.useUtils();
+  return trpc.post.update.useMutation({
+    onSuccess: () => {
+      utils.post.list.invalidate();
+      utils.post.listAll.invalidate();
+    },
+  });
+}
+
+export function useDeletePost() {
+  const utils = trpc.useUtils();
+  return trpc.post.delete.useMutation({
+    onSuccess: () => {
+      utils.post.list.invalidate();
+      utils.post.listAll.invalidate();
+    },
+  });
+}
+
+export function usePostListAll() {
+  return trpc.post.listAll.useQuery();
+}
+
+// ─── Hashtag Hooks (话题追踪) ───────────────────────────────
+export function useHashtagList() {
+  return trpc.hashtag.list.useQuery();
+}
+
+export function useHashtagCategoryList() {
+  return trpc.hashtag.categoryList.useQuery();
+}
+
+export function useCreateHashtag() {
+  const utils = trpc.useUtils();
+  return trpc.hashtag.create.useMutation({
+    onSuccess: () => {
+      utils.hashtag.list.invalidate();
+    },
+  });
+}
+
+export function useDeleteHashtag() {
+  const utils = trpc.useUtils();
+  return trpc.hashtag.delete.useMutation({
+    onSuccess: () => {
+      utils.hashtag.list.invalidate();
+    },
+  });
+}
+
+export function useCreateHashtagCategory() {
+  const utils = trpc.useUtils();
+  return trpc.hashtag.categoryCreate.useMutation({
+    onSuccess: () => {
+      utils.hashtag.categoryList.invalidate();
+    },
+  });
+}
+
+export function useDeleteHashtagCategory() {
+  const utils = trpc.useUtils();
+  return trpc.hashtag.categoryDelete.useMutation({
+    onSuccess: () => {
+      utils.hashtag.categoryList.invalidate();
+      utils.hashtag.list.invalidate();
+    },
   });
 }
 
@@ -237,6 +336,99 @@ export function useCleanupTestData() {
       utils.influencer.list.invalidate();
       utils.notification.list.invalidate();
       utils.notification.unreadCount.invalidate();
+    },
+  });
+}
+
+// ─── Card Category Hooks ──────────────────────────────────────
+
+export function useCardCategoryList() {
+  return trpc.cardCategory.list.useQuery();
+}
+
+export function useCreateCardCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.create.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useUpdateCardCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.update.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useDeleteCardCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.delete.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useToggleCategoryExpand() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.toggleExpand.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useMoveCardToCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.moveCard.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useToggleCategoryPin() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.togglePin.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useSaveCategoryOrder() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.saveCategoryOrder.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useSaveCardOrderInCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.saveCardOrder.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+export function useAssignCardToCategory() {
+  const utils = trpc.useUtils();
+  return trpc.cardCategory.assignCard.useMutation({
+    onSuccess: () => utils.cardCategory.list.invalidate(),
+  });
+}
+
+// ─── Card Preference Hooks (drag sort + pin) ──────────────────
+
+export function useCardPreferenceList() {
+  return trpc.cardPreference.list.useQuery();
+}
+
+export function useSaveCardOrder() {
+  const utils = trpc.useUtils();
+  return trpc.cardPreference.saveOrder.useMutation({
+    onSuccess: () => {
+      utils.cardPreference.list.invalidate();
+    },
+  });
+}
+
+export function useToggleCardPin() {
+  const utils = trpc.useUtils();
+  return trpc.cardPreference.togglePin.useMutation({
+    onSuccess: () => {
+      utils.cardPreference.list.invalidate();
     },
   });
 }

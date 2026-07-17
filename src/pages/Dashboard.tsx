@@ -23,8 +23,12 @@ import {
   ChevronRight,
   Settings,
   Handshake,
+  Heart,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/providers/trpc";
+import TopicTracker from "@/components/TopicTracker";
 
 function formatNumber(num: number) {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
@@ -40,6 +44,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalImpressions: 0, totalClicks: 0, totalConversions: 0, avgRoi: 0 });
   const [collabCount, setCollabCount] = useState(0);
 
+  // Fetch post records from backend
+  const { data: allPosts = [] } = trpc.post.listAll.useQuery();
+
   useEffect(() => {
     setInfluencers(getInfluencers());
     setCampaigns(getCampaigns());
@@ -47,6 +54,26 @@ export default function Dashboard() {
     setStats(getDashboardStats());
     setCollabCount(getCollaborations().length);
   }, []);
+
+  // Calculate post stats
+  const postStats = useState(() => {
+    return {
+      totalPosts: allPosts.length,
+      totalSevenDayExposures: allPosts.reduce((s: number, p: any) => s + (p.sevenDayExposures || 0), 0),
+      totalLikes: allPosts.reduce((s: number, p: any) => s + (p.likes || 0), 0),
+      totalComments: allPosts.reduce((s: number, p: any) => s + (p.comments || 0), 0),
+      totalShares: allPosts.reduce((s: number, p: any) => s + (p.shares || 0), 0),
+    };
+  })[0];
+
+  // Update postStats when allPosts changes
+  useEffect(() => {
+    postStats.totalPosts = allPosts.length;
+    postStats.totalSevenDayExposures = allPosts.reduce((s: number, p: any) => s + (p.sevenDayExposures || 0), 0);
+    postStats.totalLikes = allPosts.reduce((s: number, p: any) => s + (p.likes || 0), 0);
+    postStats.totalComments = allPosts.reduce((s: number, p: any) => s + (p.comments || 0), 0);
+    postStats.totalShares = allPosts.reduce((s: number, p: any) => s + (p.shares || 0), 0);
+  }, [allPosts, postStats]);
 
   return (
     <div className="space-y-8">
@@ -80,56 +107,38 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards - Dense Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { title: "总曝光量", value: formatNumber(stats.totalImpressions), icon: Eye },
-          { title: "总点击数", value: formatNumber(stats.totalClicks), icon: MousePointer },
-          { title: "总转化", value: formatNumber(stats.totalConversions), icon: ShoppingCart },
-          { title: "平均 ROI", value: stats.avgRoi.toFixed(2) + "x", icon: TrendingUp },
-        ].map((kpi, i) => {
-          const Icon = kpi.icon;
-          return (
-            <div key={i} className="card-surface p-4 hover-lift">
-              <div className="flex items-center justify-between mb-3">
-                <Icon className="w-4 h-4 text-[#ccff00]" />
+      {/* KPI Cards - Dense Grid: Post Stats */}
+      <div>
+        <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-[#ccff00]" />发布数据概览
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[
+            { title: "发布次数", value: formatNumber(postStats.totalPosts), icon: Handshake, color: "#ccff00" },
+            { title: "7日总曝光", value: formatNumber(postStats.totalSevenDayExposures), icon: Eye, color: "#06b6d4" },
+            { title: "总点赞", value: formatNumber(postStats.totalLikes), icon: Heart, color: "#ef4444" },
+            { title: "总评论", value: formatNumber(postStats.totalComments), icon: MessageCircle, color: "#f59e0b" },
+            { title: "总转发", value: formatNumber(postStats.totalShares), icon: TrendingUp, color: "#10b981" },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="card-surface p-4 hover-lift">
+                <div className="flex items-center justify-between mb-3">
+                  <Icon className="w-4 h-4" style={{ color: kpi.color }} />
+                </div>
+                <p className="text-xl font-black text-white tracking-tight">{kpi.value}</p>
+                <p className="text-[11px] text-[#666]">{kpi.title}</p>
               </div>
-              <p className="text-xl font-black text-white tracking-tight">{kpi.value}</p>
-              <p className="text-[11px] text-[#666]">{kpi.title}</p>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Middle: Trending + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Trending Topics */}
+        {/* Topic Tracker */}
         <div className="lg:col-span-2 card-surface p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-[#ccff00]" />
-              <h2 className="section-title">实时热点</h2>
-            </div>
-            <Link to="/script-generator" className="text-xs text-[#ccff00] hover:underline flex items-center gap-0.5">
-              立即创作 <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {trending.slice(0, 10).map((topic) => (
-              <span
-                key={topic.id}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] text-[#ccc] hover:bg-[#ccff00]/10 hover:text-[#ccff00] transition-colors cursor-pointer border border-white/[0.04]"
-              >
-                <Zap className="w-3 h-3" />
-                {topic.topic}
-              </span>
-            ))}
-          </div>
-          <div className="mt-4 pt-3 border-t border-white/[0.04] flex gap-4 text-[10px] text-[#555]">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />美妆 {trending.filter(t => t.category === "beauty").length}</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]" />美食 {trending.filter(t => t.category === "food").length}</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />时尚 {trending.filter(t => t.category === "fashion").length}</span>
-          </div>
+          <TopicTracker />
         </div>
 
         {/* Quick Actions */}
@@ -172,7 +181,7 @@ export default function Dashboard() {
                   }`} />
                   <div>
                     <p className="text-xs font-medium text-white">{c.name}</p>
-                    <p className="text-[10px] text-[#666]">预算 ${formatNumber(c.budget)} · ROI {c.roi.toFixed(2)}x</p>
+                    <p className="text-[10px] text-[#666]">预算 ${formatNumber(c.budget)} · 曝光 {formatNumber(c.impressions)}</p>
                   </div>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${

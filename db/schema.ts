@@ -37,8 +37,9 @@ export const influencers = mysqlTable("influencers", {
   platform: mysqlEnum("platform", ["instagram", "tiktok", "xiaohongshu", "douyin"]).notNull(),
   avatar: text("avatar"),
   bio: text("bio"),
-  followers: int("followers").default(0),
   engagementRate: decimal("engagementRate", { precision: 4, scale: 2 }).default("0"),
+  // Cooperation types (JSON string): [{platform:"instagram",types:["Post","Reel"]}, ...]
+  coopTypes: text("coopTypes"),
   niche: varchar("niche", { length: 255 }),
   location: varchar("location", { length: 255 }),
   gender: mysqlEnum("gender", ["male", "female", "other"]),
@@ -244,6 +245,49 @@ export const invitationCodes = mysqlTable("invitationCodes", {
 
 export type InvitationCode = typeof invitationCodes.$inferSelect;
 
+// ─── Post Records (发布记录) ──────────────────────────────────
+export const postRecords = mysqlTable("postRecords", {
+  id: serial("id").primaryKey(),
+  influencerId: bigint("influencerId", { mode: "number", unsigned: true }).notNull(),
+  videoUrl: text("videoUrl").notNull(), // 发布视频链接
+  nextDayExposures: int("nextDayExposures").default(0), // 次日曝光
+  sevenDayExposures: int("sevenDayExposures").default(0), // 7日曝光
+  likes: int("likes").default(0), // 点赞
+  comments: int("comments").default(0), // 评论
+  shares: int("shares").default(0), // 转发
+  notes: text("notes"), // 备注
+  isTest: int("isTest").default(0), // 0 = production, 1 = test data
+  createdAt: varchar("createdAt", { length: 20 }).notNull(), // YYYY-MM-DD
+  createdByUnionId: varchar("createdByUnionId", { length: 320 }),
+});
+
+export type PostRecord = typeof postRecords.$inferSelect;
+
+// ─── Hashtag Categories ───────────────────────────────────────
+export const hashtagCategories = mysqlTable("hashtagCategories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 20 }).default("#ccff00"), // hex color
+  isTest: int("isTest").default(0),
+  createdAt: varchar("createdAt", { length: 20 }).notNull(),
+  createdByUnionId: varchar("createdByUnionId", { length: 320 }),
+});
+
+export type HashtagCategory = typeof hashtagCategories.$inferSelect;
+
+// ─── Hashtags ──────────────────────────────────────────────────
+export const hashtags = mysqlTable("hashtags", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // #GlowUp2025
+  url: text("url").notNull(), // link to the hashtag page
+  categoryId: bigint("categoryId", { mode: "number", unsigned: true }),
+  isTest: int("isTest").default(0),
+  createdAt: varchar("createdAt", { length: 20 }).notNull(),
+  createdByUnionId: varchar("createdByUnionId", { length: 320 }),
+});
+
+export type Hashtag = typeof hashtags.$inferSelect;
+
 // ─── API Configurations ────────────────────────────────────────
 export const apiConfigs = mysqlTable("apiConfigs", {
   id: serial("id").primaryKey(),
@@ -257,3 +301,34 @@ export const apiConfigs = mysqlTable("apiConfigs", {
 
 export type ApiConfig = typeof apiConfigs.$inferSelect;
 export type InsertApiConfig = typeof apiConfigs.$inferInsert;
+
+// ─── Card Categories ───────────────────────────────────────────
+export const cardCategories = mysqlTable("cardCategories", {
+  id: serial("id").primaryKey(),
+  userUnionId: varchar("userUnionId", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isExpanded: int("isExpanded").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const cardCategoryItems = mysqlTable("cardCategoryItems", {
+  id: serial("id").primaryKey(),
+  categoryId: int("categoryId").notNull(),
+  influencerId: int("influencerId").notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isPinned: int("isPinned").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── User Card Preferences (sort order + pin, per-user) ────────
+export const userCardPreferences = mysqlTable("userCardPreferences", {
+  id: serial("id").primaryKey(),
+  userUnionId: varchar("userUnionId", { length: 255 }).notNull(),
+  influencerId: int("influencerId").notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(), // 0=first, higher=later
+  isPinned: int("isPinned").default(0).notNull(),   // 1=pinned, 0=normal
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export type UserCardPreference = typeof userCardPreferences.$inferSelect;

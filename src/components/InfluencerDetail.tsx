@@ -1,10 +1,25 @@
 import { useState, useEffect } from "react";
+import { getNicheLabel } from "@/lib/niche-map";
+import { parseCoopTypes, COOP_TYPE_OPTIONS, coopTypesToJson } from "@/lib/coop-types";
+import type { CoopTypeItem } from "@/lib/coop-types";
+import { clearSignal, clearAllSignals } from "@/lib/signal-light";
 import { useAuth } from "@/hooks/useAuth";
+
+// Helper: Beijing time with seconds (YYYY-MM-DD HH:mm:ss)
+function nowBeijing(): string {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const bj = new Date(utc + 8 * 3600000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${bj.getFullYear()}-${pad(bj.getMonth() + 1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
+}
 import { displayCountry } from "@/lib/countries";
 import { compressVideo, type CompressProgress } from "@/lib/video-compress";
+import { storeVideoFile, getVideoFile, genVideoKey } from "@/lib/video-storage";
 import {
   useNegotiationList,
   useCreateNegotiation,
+  useUpdateNegotiation,
   useDeleteNegotiation,
   useScriptReviewList,
   useCreateScriptReview,
@@ -13,6 +28,10 @@ import {
   useCreateVideoReview,
   useReviewVideo,
   useSetNotCooperating,
+  usePostList,
+  useCreatePost,
+  useDeletePost,
+  useUpdateInfluencer,
 } from "@/lib/influencer-api";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -20,12 +39,14 @@ import {
 import {
   Users, Handshake, Plus, Trash2, CheckCircle2, XCircle, Clock,
   FileText, Video, Send, ChevronDown, Upload, Link as LinkIcon, X,
+  ExternalLink, BarChart3, Eye, Heart, MessageCircle, TrendingUp, Pencil,
 } from "lucide-react";
 
 interface Props {
   influencer: any | null;
   open: boolean;
   onClose: () => void;
+  onUpdate?: (updated: any) => void;
 }
 
 const platformLabels: Record<string, string> = {
@@ -38,7 +59,7 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
-export default function InfluencerDetail({ influencer, open, onClose }: Props) {
+export default function InfluencerDetail({ influencer, open, onClose, onUpdate }: Props) {
   const { user, isAdmin } = useAuth();
   const inf = influencer;
   const infId = inf?.id ?? null;
@@ -47,11 +68,34 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
   const currentUnionId = user?.email ? `local_${user.email}` : user ? `oauth_${user.id}` : "";
   const canEdit = isAdmin || (!!user && inf?.createdByUnionId === currentUnionId);
 
-  const [activeTab, setActiveTab] = useState<"price" | "script" | "video">("price");
+  const [activeTab, setActiveTab] = useState<"price" | "script" | "video" | "post">("price");
+
+  // Auto-clear ALL signals when opening a card (user has seen the card)
+  useEffect(() => {
+    if (open && inf?.id) {
+      clearAllSignals(inf.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Clear signal light when viewing corresponding tab
+  const handleTabChange = (tab: "price" | "script" | "video" | "post") => {
+    setActiveTab(tab);
+    if (!inf?.id) return;
+    const signalMap: Record<string, "price" | "script" | "video"> = {
+      price: "price",
+      script: "script",
+      video: "video",
+    };
+    if (signalMap[tab]) {
+      clearSignal(inf.id, signalMap[tab]);
+    }
+  };
 
   // ─── Data: Negotiations ─────────────────────────────────────
   const { data: negotiations = [] } = useNegotiationList(infId);
   const createNeg = useCreateNegotiation();
+  const updateNeg = useUpdateNegotiation();
   const deleteNeg = useDeleteNegotiation();
   const [showNegForm, setShowNegForm] = useState(false);
   const [negUserPrice, setNegUserPrice] = useState("");
@@ -86,51 +130,188 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
 
   // ─── Price editing ──────────────────────────────────────────
   const setNotCoopMut = useSetNotCooperating();
-  const [editingAdminPrice, setEditingAdminPrice] = useState(false);
+  const [editingAdminPriceId, setEditingAdminPriceId] = useState<number | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [tempAdminPrice, setTempAdminPrice] = useState("");
+  const [tempNote, setTempNote] = useState("");
   const [priceSaved, setPriceSaved] = useState(false);
+
+  // ─── Cooperation Types Edit ────────────────────────────────
+  const [editingCoopTypes, setEditingCoopTypes] = useState(false);
+  const [tempCoopTypes, setTempCoopTypes] = useState<CoopTypeItem[]>([]);
+
+  // ─── Data: Post Records ────────────────────────────────────
+  const { data: posts = [] } = usePostList(infId);
+  const createPost = useCreatePost();
+  const deletePost = useDeletePost();
+
+  // ─── Cooperation Types helpers ────────────────────────────
+  const toggleDetailCoopType = (platform: string, type: string) => {
+    setTempCoopTypes((prev) => {
+      const existing = prev.find((i) => i.platform === platform);
+      if (existing) {
+        if (existing.types.includes(type)) {
+          const newTypes = existing.types.filter((t) => t !== type);
+          if (newTypes.length === 0) return prev.filter((i) => i.platform !== platform);
+          return prev.map((i) => i.platform === platform ? { ...i, types: newTypes } : i);
+        } else {
+          return prev.map((i) => i.platform === platform ? { ...i, types: [...i.types, type] } : i);
+        }
+      } else {
+        return [...prev, { platform, types: [type] }];
+      }
+    });
+  };
+
+  const isDetailCoopSelected = (platform: string, type: string) => {
+    return tempCoopTypes.some((i) => i.platform === platform && i.types.includes(type));
+  };
+
+  const handleSaveCoopTypes = () => {
+    if (!inf?.id) return;
+    const jsonStr = tempCoopTypes.length > 0 ? coopTypesToJson(tempCoopTypes) : null;
+    updateInfluencer.mutate(
+      { id: inf.id, coopTypes: jsonStr },
+      {
+        onSuccess: () => {
+          setEditingCoopTypes(false);
+          if (onUpdate) onUpdate({ ...inf, coopTypes: jsonStr });
+        },
+      }
+    );
+  };
+
+  // ─── Avatar Edit ───────────────────────────────────────────
+  const updateInfluencer = useUpdateInfluencer();
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Compress image to 256x256 before uploading
+    const compressImage = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const size = 256;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d")!;
+          // Cover crop: center the image
+          const ratio = Math.max(size / img.width, size / img.height);
+          const sx = (img.width - size / ratio) / 2;
+          const sy = (img.height - size / ratio) / 2;
+          const sw = size / ratio;
+          const sh = size / ratio;
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片加载失败")); };
+        img.src = url;
+      });
+    };
+
+    try {
+      if (!inf?.id) return;
+      const compressed = await compressImage(file);
+      updateInfluencer.mutate(
+        { id: inf.id, avatar: compressed },
+        {
+          onSuccess: () => {
+            if (onUpdate) onUpdate({ ...inf, avatar: compressed });
+          },
+          onError: (err) => {
+            alert("头像上传失败: " + err.message);
+          },
+        }
+      );
+    } catch (err: any) {
+      alert("图片处理失败: " + err.message);
+    }
+  };
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [postVideoUrl, setPostVideoUrl] = useState("");
+  const [postNextDayExp, setPostNextDayExp] = useState("");
+  const [postSevenDayExp, setPostSevenDayExp] = useState("");
+  const [postLikes, setPostLikes] = useState("");
+  const [postComments, setPostComments] = useState("");
+  const [postShares, setPostShares] = useState("");
+  const [postNotes, setPostNotes] = useState("");
 
   // Reset forms when influencer changes
   useEffect(() => {
     setShowNegForm(false); setNegUserPrice(""); setNegAdminPrice(""); setNegNotes("");
     setShowScriptForm(false); setScriptText(""); setScriptNote("");
     setShowVideoForm(false); setVideoUrl(""); setVideoFile(""); setVideoFileName(""); setVideoNote(""); setCompressInfo("");
-    setEditingAdminPrice(false);
+    setEditingAdminPriceId(null); setEditingNoteId(null);
+    setEditingCoopTypes(false); setTempCoopTypes([]);
     setReviewingScriptId(null); setReviewingVideoId(null);
-    setActiveTab("price");
+    setShowPostForm(false); setPostVideoUrl(""); setPostNextDayExp(""); setPostSevenDayExp("");
+    setPostLikes(""); setPostComments(""); setPostShares(""); setPostNotes("");
+    handleTabChange("price");
   }, [infId]);
 
   if (!inf) return null;
 
-  const followers = inf.followers || 0;
   const lastScript = scripts[scripts.length - 1];
   const lastVideo = videos[videos.length - 1];
 
   // ─── Handlers ───────────────────────────────────────────────
 
-  // Admin reviews price: create a new negotiation round with admin price
-  const handleAdminPriceSave = () => {
+  // Admin reviews price: update the existing negotiation record's adminPrice
+  const handleAdminPriceSave = (recordId: number) => {
     if (!isAdmin) return;
     const p = parseInt(tempAdminPrice) || 0;
-    // Carry forward the latest userPrice from existing negotiations
-    const latestUserPrice = negotiations.length > 0
-      ? negotiations[negotiations.length - 1].userPrice || 0
-      : inf.userPrice || 0;
-    createNeg.mutate({
-      influencerId: inf.id,
-      userPrice: latestUserPrice,
+    updateNeg.mutate({
+      id: recordId,
       adminPrice: p,
-      notes: "管理员审核报价",
-      createdAt: new Date().toISOString().split("T")[0],
     }, {
-      onSuccess: () => { setEditingAdminPrice(false); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
+      onSuccess: () => { setEditingAdminPriceId(null); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
     });
   };
 
+  // Admin edits note for a negotiation record
+  const handleNoteSave = (recordId: number) => {
+    updateNeg.mutate({
+      id: recordId,
+      notes: tempNote,
+    }, {
+      onSuccess: () => { setEditingNoteId(null); setTempNote(""); }
+    });
+  };
+
+  const handleAddPost = () => {
+    if (!postVideoUrl.trim()) return;
+    createPost.mutate({
+      influencerId: inf.id,
+      videoUrl: postVideoUrl.trim(),
+      nextDayExposures: parseInt(postNextDayExp) || 0,
+      sevenDayExposures: parseInt(postSevenDayExp) || 0,
+      likes: parseInt(postLikes) || 0,
+      comments: parseInt(postComments) || 0,
+      shares: parseInt(postShares) || 0,
+      notes: postNotes.trim(),
+      createdAt: nowBeijing(),
+    }, {
+      onSuccess: () => {
+        setPostVideoUrl(""); setPostNextDayExp(""); setPostSevenDayExp("");
+        setPostLikes(""); setPostComments(""); setPostShares(""); setPostNotes("");
+        setShowPostForm(false);
+      }
+    });
+  };
+
+  const handleDeletePostRecord = (id: number) => {
+    if (!confirm("确定删除这条发布记录？")) return;
+    deletePost.mutate({ id });
+  };
+
   const handleNotCooperating = () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !inf?.id) return;
     setNotCoopMut.mutate({ id: inf.id }, {
-      onSuccess: () => { setEditingAdminPrice(false); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
+      onSuccess: () => { setEditingAdminPriceId(null); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
     });
   };
 
@@ -141,7 +322,7 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
       userPrice: parseInt(negUserPrice) || 0,
       adminPrice: parseInt(negAdminPrice) || 0,
       notes: negNotes,
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: nowBeijing(),
     }, {
       onSuccess: () => { setNegUserPrice(""); setNegAdminPrice(""); setNegNotes(""); setShowNegForm(false); }
     });
@@ -158,7 +339,7 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
       influencerId: inf.id,
       scriptText: scriptText.trim(),
       userNote: scriptNote.trim(),
-      submittedAt: new Date().toISOString().split("T")[0],
+      submittedAt: nowBeijing(),
     }, {
       onSuccess: () => { setScriptText(""); setScriptNote(""); setShowScriptForm(false); }
     });
@@ -170,15 +351,34 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
     });
   };
 
-  const handleAddVideo = () => {
+  const handleAddVideo = async () => {
     const finalUrl = uploadMode === "file" ? videoFile : videoUrl.trim();
     if (!finalUrl) return;
+
+    // For file uploads: store the base64 video in IndexedDB, pass only the key to backend
+    let videoUrlToSend = finalUrl;
+    let videoFileNameToSend = uploadMode === "file" ? videoFileName : undefined;
+
+    if (uploadMode === "file" && videoFile && inf?.id) {
+      // Determine the round number for key generation
+      const nextRound = videos.length + 1;
+      const storageKey = genVideoKey(inf.id, nextRound);
+      try {
+        await storeVideoFile(storageKey, videoFile, videoFileName);
+        // Send only the storage key as the videoUrl
+        videoUrlToSend = `indexeddb://${storageKey}`;
+      } catch (e) {
+        console.error("Failed to store video in IndexedDB:", e);
+        // Fallback: try sending directly (may fail for large files)
+      }
+    }
+
     createVideo.mutate({
       influencerId: inf.id,
-      videoUrl: finalUrl,
-      videoFileName: uploadMode === "file" ? videoFileName : undefined,
+      videoUrl: videoUrlToSend,
+      videoFileName: videoFileNameToSend,
       userNote: videoNote.trim(),
-      submittedAt: new Date().toISOString().split("T")[0],
+      submittedAt: nowBeijing(),
     }, {
       onSuccess: () => {
         setVideoUrl(""); setVideoFile(""); setVideoFileName(""); setVideoNote(""); setCompressInfo("");
@@ -216,8 +416,28 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
 
         {/* Header */}
         <div className="flex items-start gap-4 -mt-2">
-          <img src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`} alt={inf.name}
-            className="w-16 h-16 rounded-2xl object-cover border border-white/[0.06]" />
+          <div className="relative group/avatar flex-shrink-0">
+            <img src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`} alt={inf.name}
+              className="w-16 h-16 rounded-2xl object-cover border border-white/[0.06]" />
+            {canEdit && (
+              <>
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 cursor-pointer transition-opacity"
+                  title="更换头像"
+                >
+                  <Pencil className="w-4 h-4 text-white" />
+                </label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </>
+            )}
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-black text-white tracking-tight">{inf.name}</h2>
@@ -225,56 +445,86 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
               {inf.coopStatus === "not-cooperating" && (
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 font-bold">不合作</span>
               )}
-              {/* Admin edit price button — only for admin, click to show edit panel */}
-              {isAdmin && (
-                <div className="ml-auto">
-                  {editingAdminPrice ? (
-                    <div className="flex flex-col items-end gap-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-[#06b6d4]">审核报价</span>
-                        <input type="number" value={tempAdminPrice} onChange={(e) => setTempAdminPrice(e.target.value)}
-                          className="w-20 bg-[#0a0a0a] border border-[#06b6d4]/20 rounded-lg px-2 py-0.5 text-[11px] text-white" />
-                        <button onClick={handleAdminPriceSave} className="px-2 py-0.5 rounded bg-[#06b6d4]/10 text-[#06b6d4] text-[9px]">确认</button>
-                        <button onClick={() => setEditingAdminPrice(false)} className="px-2 py-0.5 rounded bg-white/[0.04] text-[#666] text-[9px]">取消</button>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {inf.coopStatus !== "not-cooperating" && (
-                          <button onClick={handleNotCooperating} className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px]">标记不合作</button>
-                        )}
-                        {inf.coopStatus === "not-cooperating" && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">不合作</span>
-                        )}
-                      </div>
-                      {priceSaved && <span className="text-[9px] text-[#ccff00]">已保存</span>}
-                    </div>
-                  ) : (
-                    <button onClick={() => { setEditingAdminPrice(true); setTempAdminPrice(String(inf.adminPrice || "")); }}
-                      className="px-3 py-1.5 rounded-lg bg-[#06b6d4]/10 text-[#06b6d4] text-[10px] font-medium hover:bg-[#06b6d4]/20 transition-colors flex items-center gap-1">
-                      {inf.adminPrice > 0 ? `审核报价 $${inf.adminPrice.toLocaleString()}` : "审核报价"}
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
             <p className="text-sm text-[#666]">{inf.handle}</p>
             <p className="text-xs text-[#666] mt-1 flex items-center gap-1">
-              {displayCountry(inf.location) || inf.location}<span className="mx-1">·</span>{inf.niche}
+              {displayCountry(inf.location) || inf.location}<span className="mx-1">·</span>{getNicheLabel(inf.niche)}
             </p>
           </div>
         </div>
 
-        {/* Base Stats — followers only */}
-        <div className="p-4 rounded-xl bg-white/[0.02] text-center">
-          <Users className="w-5 h-5 mx-auto text-[#ccff00] mb-1" />
-          <p className="text-lg font-black text-white">{formatNumber(followers)}</p>
-          <p className="text-[10px] text-[#555]">粉丝</p>
+        {/* Cooperation Types */}
+        <div className="p-4 rounded-xl bg-white/[0.02]">
+          {!editingCoopTypes ? (
+            <div className="relative">
+              {inf.coopTypes ? (
+                <div className="space-y-1.5">
+                  {parseCoopTypes(inf.coopTypes).map((item) => (
+                    <div key={item.platform} className="flex items-center gap-2">
+                      <span className="text-[10px] font-medium text-white w-16">{item.platform}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {item.types.map((t) => (
+                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00]">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-[#555] text-center">未设置合作方式</p>
+              )}
+              {canEdit && (
+                <button
+                  onClick={() => { setTempCoopTypes(parseCoopTypes(inf.coopTypes)); setEditingCoopTypes(true); }}
+                  className="absolute top-0 right-0 text-[9px] text-[#ccff00]/60 hover:text-[#ccff00] px-1.5 py-0.5 rounded hover:bg-[#ccff00]/10 transition-all"
+                >
+                  {inf.coopTypes ? "编辑" : "添加"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-medium text-white">编辑合作方式</span>
+              </div>
+              {Object.entries(COOP_TYPE_OPTIONS).map(([platform, types]) => (
+                <div key={platform} className="p-2 rounded-lg bg-white/[0.02]">
+                  <p className="text-[10px] font-medium text-[#888] mb-1.5">{platform}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {types.map((type) => {
+                      const selected = isDetailCoopSelected(platform, type);
+                      return (
+                        <button key={type} onClick={() => toggleDetailCoopType(platform, type)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all border ${
+                            selected
+                              ? "bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30"
+                              : "bg-white/[0.03] text-[#888] border-white/[0.06] hover:bg-white/[0.06]"
+                          }`}>
+                          {selected && "✓ "}{type}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 pt-1">
+                <button onClick={handleSaveCoopTypes} disabled={updateInfluencer.isPending}
+                  className="px-3 py-1.5 rounded-lg bg-[#ccff00] text-black text-[10px] font-bold disabled:opacity-50">
+                  {updateInfluencer.isPending ? "保存中..." : "保存"}
+                </button>
+                <button onClick={() => { setEditingCoopTypes(false); setTempCoopTypes([]); }}
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.04] text-[#666] text-[10px]">取消</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02]">
-          <TabButton active={activeTab === "price"} onClick={() => setActiveTab("price")} icon={Handshake} label="谈价记录" count={negotiations.length} />
-          <TabButton active={activeTab === "script"} onClick={() => setActiveTab("script")} icon={FileText} label="脚本确认" count={scripts.length} badge={lastScript?.status === "pending"} />
-          <TabButton active={activeTab === "video"} onClick={() => setActiveTab("video")} icon={Video} label="视频初稿" count={videos.length} badge={lastVideo?.status === "pending"} />
+          <TabButton active={activeTab === "price"} onClick={() => handleTabChange("price")} icon={Handshake} label="谈价记录" count={negotiations.length} />
+          <TabButton active={activeTab === "script"} onClick={() => handleTabChange("script")} icon={FileText} label="脚本确认" count={scripts.length} badge={lastScript?.status === "pending"} />
+          <TabButton active={activeTab === "video"} onClick={() => handleTabChange("video")} icon={Video} label="视频初稿" count={videos.length} badge={lastVideo?.status === "pending"} />
+          <TabButton active={activeTab === "post"} onClick={() => handleTabChange("post")} icon={BarChart3} label="发布记录" count={posts.length} />
         </div>
 
         {/* ─── Tab: Price Negotiation ─────────────────────── */}
@@ -327,7 +577,7 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">第 {n.round} 轮</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-[#666]">{n.createdAt}</span>
+                        <span className="text-[9px] text-[#666]">{n.createdAt}</span>
                         {canEdit && (
                           <button onClick={() => handleDeleteNeg(n.id)}
                             className="w-5 h-5 rounded bg-red-500/10 flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -338,15 +588,72 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[10px] text-[#888] mb-0.5">网红报价</p>
+                        <p className="text-[10px] text-[#888] mb-0.5">网红报价 {n.createdAt && <span className="text-[9px] text-[#666]">· {n.createdAt}</span>}</p>
                         <p className="text-sm font-bold text-[#ccff00]">{n.userPrice > 0 ? `$${n.userPrice.toLocaleString()}` : "—"}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#888] mb-0.5">审核报价</p>
-                        <p className="text-sm font-bold text-[#06b6d4]">{n.adminPrice > 0 ? `$${n.adminPrice.toLocaleString()}` : "—"}</p>
+                        {editingAdminPriceId === n.id && isAdmin ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={tempAdminPrice}
+                              onChange={(e) => setTempAdminPrice(e.target.value)}
+                              placeholder="审核报价"
+                              autoFocus
+                              className="w-20 bg-[#0a0a0a] border border-[#06b6d4]/20 rounded-lg px-2 py-0.5 text-[11px] text-white"
+                            />
+                            <button onClick={() => handleAdminPriceSave(n.id)} className="px-1.5 py-0.5 rounded bg-[#06b6d4]/10 text-[#06b6d4] text-[9px]">确认</button>
+                            <button onClick={() => setEditingAdminPriceId(null)} className="px-1.5 py-0.5 rounded bg-white/[0.04] text-[#666] text-[9px]">取消</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="text-[10px] text-[#888] mb-0.5">审核报价 {n.adminPrice > 0 && n.createdAt && <span className="text-[9px] text-[#666]">· {n.createdAt}</span>}</p>
+                              <p className="text-sm font-bold text-[#06b6d4]">{n.adminPrice > 0 ? `$${n.adminPrice.toLocaleString()}` : "—"}</p>
+                            </div>
+                            {isAdmin && (
+                              <button
+                                onClick={() => { setEditingAdminPriceId(n.id); setTempAdminPrice(String(n.adminPrice || "")); }}
+                                className="text-[9px] text-[#06b6d4]/60 hover:text-[#06b6d4] px-1.5 py-0.5 rounded hover:bg-[#06b6d4]/10 transition-all"
+                              >
+                                编辑
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {n.notes && <p className="text-[10px] text-[#888] mt-2 border-t border-white/[0.04] pt-2">{n.notes}</p>}
+                    {/* Notes - editable by admin */}
+                    {editingNoteId === n.id && isAdmin ? (
+                      <div className="mt-2 border-t border-white/[0.04] pt-2 flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={tempNote}
+                          onChange={(e) => setTempNote(e.target.value)}
+                          placeholder="输入备注..."
+                          autoFocus
+                          className="flex-1 bg-[#0a0a0a] border border-[#ccff00]/20 rounded-lg px-2 py-1 text-[11px] text-white placeholder:text-[#444] focus:outline-none"
+                        />
+                        <button onClick={() => handleNoteSave(n.id)} className="px-1.5 py-1 rounded bg-[#ccff00]/10 text-[#ccff00] text-[9px]">保存</button>
+                        <button onClick={() => { setEditingNoteId(null); setTempNote(""); }} className="px-1.5 py-1 rounded bg-white/[0.04] text-[#666] text-[9px]">取消</button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 border-t border-white/[0.04] pt-2 flex items-center justify-between">
+                        {n.notes ? (
+                          <p className="text-[10px] text-[#888] flex-1">{n.notes}</p>
+                        ) : (
+                          <p className="text-[10px] text-[#555] flex-1 italic">暂无备注</p>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => { setEditingNoteId(n.id); setTempNote(n.notes || ""); }}
+                            className="text-[9px] text-[#ccff00]/60 hover:text-[#ccff00] px-1.5 py-0.5 rounded hover:bg-[#ccff00]/10 transition-all ml-2"
+                          >
+                            {n.notes ? "编辑备注" : "添加备注"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -544,19 +851,7 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
                       </div>
                       <span className="text-[10px] text-[#666]">{v.submittedAt}</span>
                     </div>
-                    {v.videoUrl.startsWith("data:video") ? (
-                      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04]">
-                        <video src={v.videoUrl} controls className="w-full max-h-[200px] object-contain" />
-                        {v.videoFileName && <p className="px-3 py-1.5 text-[10px] text-[#888] border-t border-white/[0.04]">{v.videoFileName}</p>}
-                      </div>
-                    ) : (
-                      <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
-                        <a href={v.videoUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-[11px] text-[#06b6d4] hover:underline break-all flex items-center gap-1">
-                          <Video className="w-3 h-3" />{v.videoUrl}
-                        </a>
-                      </div>
-                    )}
+                    <VideoPlayer videoUrl={v.videoUrl} videoFileName={v.videoFileName} />
                     {v.userNote && (
                       <div className="mb-3">
                         <p className="text-[9px] text-[#888] mb-0.5">用户意见</p>
@@ -603,12 +898,198 @@ export default function InfluencerDetail({ influencer, open, onClose }: Props) {
             )}
           </div>
         )}
+
+        {/* ─── Tab: Post Records ──────────────────────────── */}
+        {activeTab === "post" && (
+          <div className="space-y-3">
+            {canEdit && (
+              <button onClick={() => setShowPostForm(!showPostForm)}
+                className="w-full py-2.5 rounded-xl border border-dashed border-[#ccff00]/30 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/5 transition-all flex items-center justify-center gap-1.5">
+                {showPostForm ? <><ChevronDown className="w-3.5 h-3.5" />取消</> : <><Plus className="w-3.5 h-3.5" />记录新发布</>}
+              </button>
+            )}
+            {showPostForm && (
+              <div className="p-4 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-3">
+                <h4 className="text-xs font-bold text-white">新增发布记录</h4>
+                <div>
+                  <label className="text-[10px] text-[#666] mb-1 block">发布视频链接 *</label>
+                  <input type="url" value={postVideoUrl} onChange={(e) => setPostVideoUrl(e.target.value)} placeholder="发布后的视频链接（TikTok、Instagram等）"
+                    className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#666] mb-1 block">次日曝光</label>
+                    <input type="number" value={postNextDayExp} onChange={(e) => setPostNextDayExp(e.target.value)} placeholder="0"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#666] mb-1 block">7日曝光</label>
+                    <input type="number" value={postSevenDayExp} onChange={(e) => setPostSevenDayExp(e.target.value)} placeholder="0"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#666] mb-1 block">点赞</label>
+                    <input type="number" value={postLikes} onChange={(e) => setPostLikes(e.target.value)} placeholder="0"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#666] mb-1 block">评论</label>
+                    <input type="number" value={postComments} onChange={(e) => setPostComments(e.target.value)} placeholder="0"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#666] mb-1 block">转发</label>
+                    <input type="number" value={postShares} onChange={(e) => setPostShares(e.target.value)} placeholder="0"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#666] mb-1 block">备注</label>
+                  <textarea value={postNotes} onChange={(e) => setPostNotes(e.target.value)} placeholder="发布备注..."
+                    rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                </div>
+                <button onClick={handleAddPost} disabled={!postVideoUrl.trim()}
+                  className="w-full btn-lime text-xs flex items-center justify-center gap-1.5 py-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <Send className="w-3 h-3" />保存记录
+                </button>
+              </div>
+            )}
+            {posts.length === 0 ? (
+              <div className="text-center py-8">
+                <BarChart3 className="w-8 h-8 text-[#444] mx-auto mb-2" />
+                <p className="text-xs text-[#666]">暂无发布记录</p>
+                <p className="text-[10px] text-[#555] mt-1">{canEdit ? "点击上方按钮记录发布数据" : "只有卡片创建者可编辑"}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {posts.map((p: any) => {
+                  // Calculate CPM based on last approved adminPrice
+                  const lastAdminPrice = inf.adminPrice || 0;
+                  const cpm7d = lastAdminPrice > 0 && p.sevenDayExposures > 0
+                    ? ((lastAdminPrice / p.sevenDayExposures) * 1000).toFixed(2)
+                    : null;
+                  return (
+                    <div key={p.id} className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">{p.createdAt}</span>
+                          {cpm7d && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#06b6d4]/10 text-[#06b6d4] font-medium">CPM ${cpm7d}</span>
+                          )}
+                        </div>
+                        {canEdit && (
+                          <button onClick={() => handleDeletePostRecord(p.id)}
+                            className="w-5 h-5 rounded bg-red-500/10 flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
+                        <a href={p.videoUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] text-[#06b6d4] hover:underline break-all flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" />{p.videoUrl}
+                        </a>
+                      </div>
+                      <div className="grid grid-cols-5 gap-3 mb-2">
+                        <div>
+                          <p className="text-[9px] text-[#666]">次日曝光</p>
+                          <p className="text-xs font-bold text-white">{p.nextDayExposures > 0 ? formatNumber(p.nextDayExposures) : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-[#666]">7日曝光</p>
+                          <p className="text-xs font-bold text-white">{p.sevenDayExposures > 0 ? formatNumber(p.sevenDayExposures) : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-[#666]">点赞</p>
+                          <p className="text-xs font-bold text-white">{p.likes > 0 ? formatNumber(p.likes) : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-[#666]">评论</p>
+                          <p className="text-xs font-bold text-white">{p.comments > 0 ? formatNumber(p.comments) : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-[#666]">转发</p>
+                          <p className="text-xs font-bold text-white">{p.shares > 0 ? formatNumber(p.shares) : "—"}</p>
+                        </div>
+                      </div>
+                      {p.notes && <p className="text-[10px] text-[#888] border-t border-white/[0.04] pt-2">{p.notes}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
 /* ─── Sub-components ────────────────────────────────────────── */
+
+// Video player that supports IndexedDB-stored videos
+function VideoPlayer({ videoUrl, videoFileName }: { videoUrl: string; videoFileName?: string }) {
+  const [src, setSrc] = useState(videoUrl);
+  const [loading, setLoading] = useState(videoUrl.startsWith("indexeddb://"));
+
+  useEffect(() => {
+    if (videoUrl.startsWith("indexeddb://")) {
+      const key = videoUrl.replace("indexeddb://", "");
+      setLoading(true);
+      getVideoFile(key).then((file) => {
+        if (file) {
+          setSrc(file.dataUrl);
+        } else {
+          setSrc(""); // File not found in IndexedDB
+        }
+        setLoading(false);
+      }).catch(() => {
+        setSrc("");
+        setLoading(false);
+      });
+    } else {
+      setSrc(videoUrl);
+      setLoading(false);
+    }
+  }, [videoUrl]);
+
+  if (loading) {
+    return (
+      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04] flex items-center justify-center py-8">
+        <span className="text-xs text-[#666]">正在加载视频...</span>
+      </div>
+    );
+  }
+
+  if (!src) {
+    return (
+      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04] flex items-center justify-center py-8">
+        <span className="text-xs text-[#666]">视频文件未找到</span>
+      </div>
+    );
+  }
+
+  if (src.startsWith("data:video")) {
+    return (
+      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04]">
+        <video src={src} controls className="w-full max-h-[200px] object-contain" />
+        {videoFileName && <p className="px-3 py-1.5 text-[10px] text-[#888] border-t border-white/[0.04]">{videoFileName}</p>}
+      </div>
+    );
+  }
+
+  // External link
+  return (
+    <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
+      <a href={src} target="_blank" rel="noopener noreferrer"
+        className="text-[11px] text-[#06b6d4] hover:underline break-all flex items-center gap-1">
+        <Video className="w-3 h-3" />{src}
+      </a>
+    </div>
+  );
+}
 
 function TabButton({ active, onClick, icon: Icon, label, count, badge }: {
   active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>;

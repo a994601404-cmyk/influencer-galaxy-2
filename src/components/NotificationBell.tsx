@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   useNotificationList,
@@ -9,6 +9,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationRealtime } from "@/hooks/useNotificationRealtime";
 import { trpc } from "@/providers/trpc";
+import { setSignal } from "@/lib/signal-light";
+import type { SignalType } from "@/lib/signal-light";
 import {
   Bell,
   CheckCheck,
@@ -46,6 +48,28 @@ export default function NotificationBell() {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
+  // Sync unread notifications to signal lights on mount / data change
+  // This ensures signals are set even after page refresh
+  const typeMap = useMemo(() => ({
+    negotiation_reviewed: "price" as SignalType,
+    script_reviewed: "script" as SignalType,
+    video_reviewed: "video" as SignalType,
+    negotiation_created: "price" as SignalType,
+    script_created: "script" as SignalType,
+    video_created: "video" as SignalType,
+    influencer_created: "price" as SignalType,
+  }), []);
+
+  useEffect(() => {
+    // Set signal lights for all unread notifications
+    for (const n of notifications) {
+      if (!n.isRead && n.type && typeMap[n.type] && n.relatedId) {
+        setSignal(n.relatedId, typeMap[n.type], n.createdAt);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifications.length]);
+
   // Real-time delivery (SSE + polling fallback)
   const { mode, connected } = useNotificationRealtime(
     useCallback((data) => {
@@ -55,6 +79,10 @@ export default function NotificationBell() {
       // Show toast
       setToast({ title: data.title, message: data.message });
       setTimeout(() => setToast(null), 4000);
+      // Set signal light for real-time notifications
+      if (data.type && typeMap[data.type] && data.relatedId) {
+        setSignal(data.relatedId, typeMap[data.type], data.createdAt);
+      }
     }, [utils])
   );
 

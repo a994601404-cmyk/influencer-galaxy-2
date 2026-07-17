@@ -4,7 +4,7 @@ import { getDb, getRawConnection } from "./queries/connection.js";
 import { influencers, negotiationRecords } from "../db/schema.js";
 import { eq, like, and, desc, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification, getAdminUnionIds } from "./notification-router.js";
+import { createNotification, getAdminUnionIds, getBeijingTimeFull } from "./notification-router.js";
 
 // ─── Helpers ──────────────────────────────────────────────────
 function serializeJsonField<T>(val: T | null | undefined): string | null {
@@ -136,15 +136,15 @@ export const influencerRouter = createRouter({
       name: z.string().min(1),
       handle: z.string().min(1),
       platform: z.enum(["instagram", "tiktok", "xiaohongshu", "douyin"]),
-      avatar: z.string().optional(),
-      bio: z.string().optional(),
-      followers: z.number().optional(),
+      avatar: z.string().nullable().optional(),
+      bio: z.string().nullable().optional(),
       engagementRate: z.number().optional(),
-      niche: z.string().optional(),
-      location: z.string().optional(),
+      niche: z.string().nullable().optional(),
+      location: z.string().nullable().optional(),
       gender: z.enum(["male", "female", "other"]).optional(),
-      profileUrl: z.string().optional(),
+      profileUrl: z.string().nullable().optional(),
       userPrice: z.number().optional(),
+      coopTypes: z.string().nullable().optional(),
       audienceGender: z.any().optional(),
       audienceAge: z.any().optional(),
       audienceDevices: z.any().optional(),
@@ -152,15 +152,15 @@ export const influencerRouter = createRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
-      const now = new Date().toISOString().split("T")[0];
+      const now = getBeijingTimeFull();
       const result = await db.insert(influencers).values({
         name: input.name,
         handle: input.handle,
         platform: input.platform,
         avatar: input.avatar || null,
         bio: input.bio || null,
-        followers: input.followers || 0,
         engagementRate: input.engagementRate ? String(input.engagementRate) : "0",
+        coopTypes: input.coopTypes || null,
         niche: input.niche || null,
         location: input.location || null,
         gender: input.gender || "other",
@@ -205,14 +205,14 @@ export const influencerRouter = createRouter({
       name: z.string().optional(),
       handle: z.string().optional(),
       platform: z.enum(["instagram", "tiktok", "xiaohongshu", "douyin"]).optional(),
-      avatar: z.string().optional(),
-      bio: z.string().optional(),
-      followers: z.number().optional(),
+      avatar: z.string().nullable().optional(),
+      bio: z.string().nullable().optional(),
       engagementRate: z.number().optional(),
-      niche: z.string().optional(),
-      location: z.string().optional(),
+      niche: z.string().nullable().optional(),
+      location: z.string().nullable().optional(),
       gender: z.enum(["male", "female", "other"]).optional(),
-      profileUrl: z.string().optional(),
+      profileUrl: z.string().nullable().optional(),
+      coopTypes: z.string().nullable().optional(),
       audienceGender: z.any().optional(),
       audienceAge: z.any().optional(),
       audienceDevices: z.any().optional(),
@@ -233,8 +233,8 @@ export const influencerRouter = createRouter({
       if (data.platform !== undefined) setData.platform = data.platform;
       if (data.avatar !== undefined) setData.avatar = data.avatar;
       if (data.bio !== undefined) setData.bio = data.bio;
-      if (data.followers !== undefined) setData.followers = data.followers;
       if (data.engagementRate !== undefined) setData.engagementRate = String(data.engagementRate);
+      if (data.coopTypes !== undefined) setData.coopTypes = data.coopTypes;
       if (data.niche !== undefined) setData.niche = data.niche;
       if (data.location !== undefined) setData.location = data.location;
       if (data.gender !== undefined) setData.gender = data.gender;
@@ -292,7 +292,7 @@ export const influencerRouter = createRouter({
       if (ctx.user.role !== "admin" && existing[0].createdByUnionId !== ctx.user.unionId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权修改" });
       }
-      const now = new Date().toISOString().split("T")[0];
+      const now = getBeijingTimeFull();
       await db.update(influencers).set({
         userPrice: input.price,
         userPriceUpdatedAt: now,
@@ -306,7 +306,7 @@ export const influencerRouter = createRouter({
     .input(z.object({ id: z.number(), price: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const now = new Date().toISOString().split("T")[0];
+      const now = getBeijingTimeFull();
       await db.update(influencers).set({
         adminPrice: input.price,
         adminPriceUpdatedAt: now,

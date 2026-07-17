@@ -32,6 +32,25 @@ export async function getInfluencerName(influencerId: number): Promise<string | 
   return (rows as any[])[0]?.name || null;
 }
 
+// ─── Helper: Beijing time formatter ──────────────────────────
+function getBeijingTime(): string {
+  const now = new Date();
+  // UTC+8 offset in minutes
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const beijing = new Date(utc + 8 * 3600000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${beijing.getFullYear()}-${pad(beijing.getMonth() + 1)}-${pad(beijing.getDate())} ${pad(beijing.getHours())}:${pad(beijing.getMinutes())}`;
+}
+
+// Full datetime with seconds (YYYY-MM-DD HH:mm:ss)
+export function getBeijingTimeFull(): string {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const beijing = new Date(utc + 8 * 3600000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${beijing.getFullYear()}-${pad(beijing.getMonth() + 1)}-${pad(beijing.getDate())} ${pad(beijing.getHours())}:${pad(beijing.getMinutes())}:${pad(beijing.getSeconds())}`;
+}
+
 // ─── Helper: Create notification ──────────────────────────────
 export async function createNotification(opts: {
   receiverUnionId: string;
@@ -43,7 +62,7 @@ export async function createNotification(opts: {
   isTest?: boolean;
 }) {
   const conn = await getRawConnection();
-  const now = new Date().toISOString().split("T")[0] + " " + new Date().toTimeString().slice(0, 5);
+  const now = getBeijingTime();
   const isTestVal = opts.isTest ? 1 : 0;
   const [result] = await conn.execute(
     `INSERT INTO notifications (receiverUnionId, type, title, message, relatedId, relatedType, isRead, isTest, createdAt)

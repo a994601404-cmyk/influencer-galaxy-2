@@ -47,7 +47,24 @@
     @apply bg-[#141414] rounded-2xl border border-white/[0.05];
   }
   .card-surface:hover {
-    border-color: rgba(204, 255, 0, 0.15);
+    border-color: rgba(204, 255, 0, 0.25);
+    box-shadow:
+      0 0 6px rgba(204, 255, 0, 0.15),
+      0 0 20px rgba(204, 255, 0, 0.10),
+      0 0 40px rgba(204, 255, 0, 0.06),
+      0 0 80px rgba(204, 255, 0, 0.03),
+      inset 0 0 10px rgba(204, 255, 0, 0.03);
+  }
+
+  /* Pinned card — always-on glow, brighter than hover */
+  .card-pinned {
+    border-color: rgba(204, 255, 0, 0.40) !important;
+    box-shadow:
+      0 0 8px rgba(204, 255, 0, 0.25),
+      0 0 30px rgba(204, 255, 0, 0.18),
+      0 0 60px rgba(204, 255, 0, 0.10),
+      0 0 120px rgba(204, 255, 0, 0.05),
+      inset 0 0 15px rgba(204, 255, 0, 0.06) !important;
   }
 
   /* ─── Lime Accent Button ────────────────────────────────── */
@@ -74,11 +91,17 @@
 
   /* ─── Hover Lift ────────────────────────────────────────── */
   .hover-lift {
-    @apply transition-all duration-300;
+    @apply transition-all duration-500;
   }
   .hover-lift:hover {
     @apply -translate-y-0.5;
-    border-color: rgba(204, 255, 0, 0.12);
+    border-color: rgba(204, 255, 0, 0.25);
+    box-shadow:
+      0 0 6px rgba(204, 255, 0, 0.15),
+      0 0 20px rgba(204, 255, 0, 0.10),
+      0 0 40px rgba(204, 255, 0, 0.06),
+      0 0 80px rgba(204, 255, 0, 0.03),
+      inset 0 0 10px rgba(204, 255, 0, 0.03);
   }
 
   /* ─── Shimmer Loading ───────────────────────────────────── */
@@ -136,5 +159,14 @@
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: rgba(204, 255, 0, 0.35);
+  }
+
+  /* ─── Signal Light Blink ──────────────────────────────── */
+  @keyframes signalBlink {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px 2px rgba(204, 255, 0, 0.8), 0 0 12px 4px rgba(204, 255, 0, 0.4); }
+    50% { opacity: 0.2; box-shadow: 0 0 3px 1px rgba(204, 255, 0, 0.2), 0 0 6px 2px rgba(204, 255, 0, 0.1); }
+  }
+  .signal-blink {
+    animation: signalBlink 1.5s ease-in-out infinite;
   }
 }

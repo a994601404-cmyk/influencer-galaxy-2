@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { createRouter, publicQuery, authedQuery } from "./middleware.js";
+import { createRouter, publicQuery, authedQuery, adminQuery } from "./middleware.js";
 import { getDb, getRawConnection } from "./queries/connection.js";
 import { negotiationRecords, influencers } from "../db/schema.js";
 import { eq, and, asc, sql } from "drizzle-orm";
-import { createNotification, getAdminUnionIds, getInfluencerCreator, getInfluencerName } from "./notification-router.js";
+import { createNotification, getAdminUnionIds, getInfluencerCreator, getInfluencerName, getBeijingTimeFull } from "./notification-router.js";
 
 export const negotiationRouter = createRouter({
   // List all negotiation records, optionally filtered by influencerIds
@@ -72,9 +72,10 @@ export const negotiationRouter = createRouter({
       // Sync latest prices to influencer card cache (raw mysql2 for reliability)
       try {
         const rawConn = await getRawConnection();
+        const nowStr = getBeijingTimeFull();
         await rawConn.execute(
-          `UPDATE influencers SET userPrice = ?, adminPrice = ? WHERE id = ?`,
-          [input.userPrice, input.adminPrice, input.influencerId]
+          `UPDATE influencers SET userPrice = ?, adminPrice = ?, userPriceUpdatedAt = ?, adminPriceUpdatedAt = ? WHERE id = ?`,
+          [input.userPrice, input.adminPrice, nowStr, nowStr, input.influencerId]
         );
       } catch { /* ignore sync failure */ }
 
@@ -114,6 +115,58 @@ export const negotiationRouter = createRouter({
       } catch { /* ignore notification failure */ }
 
       const row = await db.select().from(negotiationRecords).where(eq(negotiationRecords.id, insertId)).limit(1);
+      return row[0];
+    }),
+
+  update: adminQuery
+    .input(z.object({
+      id: z.number(),
+      adminPrice: z.number().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const setData: any = {};
+      if (input.adminPrice !== undefined) setData.adminPrice = input.adminPrice;
+      if (input.notes !== undefined) setData.notes = input.notes;
+      if (Object.keys(setData).length === 0) throw new Error("No fields to update");
+
+      await db.update(negotiationRecords)
+        .set(setData)
+        .where(eq(negotiationRecords.id, input.id));
+
+      // Get the updated record
+      const row = await db.select().from(negotiationRecords)
+        .where(eq(negotiationRecords.id, input.id))
+        .limit(1);
+
+      // Sync to influencer card
+      try {
+        const rawConn = await getRawConnection();
+        const nowStr2 = getBeijingTimeFull();
+        await rawConn.execute(
+          `UPDATE influencers SET adminPrice = ?, adminPriceUpdatedAt = ? WHERE id = ?`,
+          [input.adminPrice, nowStr2, row[0].influencerId]
+        );
+      } catch { /* ignore */ }
+
+      // Notify creator
+      try {
+        const infName = await getInfluencerName(row[0].influencerId);
+        const creatorId = await getInfluencerCreator(row[0].influencerId);
+        if (creatorId) {
+          await createNotification({
+            receiverUnionId: creatorId,
+            type: "negotiation_reviewed",
+            title: "谈价记录已审核",
+            message: `管理员审核了网红「${infName}」的第${row[0].round}轮谈价，审核报价为 $${input.adminPrice.toLocaleString()}`,
+            relatedId: row[0].influencerId,
+            relatedType: "influencer",
+            isTest: ctx.testMode,
+          });
+        }
+      } catch { /* ignore */ }
+
       return row[0];
     }),
 
