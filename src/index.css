@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Higgsfield-inspired: near-black bg, lime accent */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 72 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 72 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 0.06;
+    --input: 0 0% 100% / 0.06;
+    --ring: 72 100% 50%;
+    --radius: 0.875rem;
+  }
+
+  * {
+    @apply border-white/[0.06];
+  }
+
+  body {
+    @apply bg-[#0a0a0a] text-white antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* ─── Higgsfield-style Cards ────────────────────────────── */
+  .card-surface {
+    @apply bg-[#141414] rounded-2xl border border-white/[0.05];
+  }
+  .card-surface:hover {
+    border-color: rgba(204, 255, 0, 0.15);
+  }
+
+  /* ─── Lime Accent Button ────────────────────────────────── */
+  .btn-lime {
+    @apply bg-[#ccff00] text-black font-semibold rounded-full px-5 py-2.5 transition-all duration-200;
+  }
+  .btn-lime:hover {
+    @apply scale-[1.02];
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.3);
+  }
+
+  /* ─── Glow Effects ──────────────────────────────────────── */
+  .glow-lime {
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.2), 0 0 40px rgba(204, 255, 0, 0.05);
+  }
+
+  /* ─── Text Gradients ────────────────────────────────────── */
+  .text-gradient-lime {
+    background: linear-gradient(135deg, #ccff00 0%, #99cc00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── Hover Lift ────────────────────────────────────────── */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    @apply -translate-y-0.5;
+    border-color: rgba(204, 255, 0, 0.12);
+  }
+
+  /* ─── Shimmer Loading ───────────────────────────────────── */
+  .shimmer {
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ─── Fade In ───────────────────────────────────────────── */
+  .fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── "New" Badge ───────────────────────────────────────── */
+  .badge-new {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#ccff00] text-black;
+  }
+
+  /* ─── Section Title ─────────────────────────────────────── */
+  .section-title {
+    @apply text-lg font-bold tracking-tight uppercase;
+  }
+
+  /* ─── Nav Item ──────────────────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-2 px-3 py-1.5 rounded-full text-sm text-[#8a8a8a] transition-all duration-200;
+  }
+  .nav-item:hover {
+    @apply text-white bg-white/[0.05];
+  }
+  .nav-item.active {
+    @apply text-[#ccff00] bg-[#ccff00]/10;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 5px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(204, 255, 0, 0.2);
+    border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(204, 255, 0, 0.35);
+  }
+}
