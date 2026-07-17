@@ -115,10 +115,11 @@ export function useNegotiationList(influencerId: number | null) {
 }
 
 export function useNegotiationListAll(influencerIds?: number[]) {
-  const ids = influencerIds || [];
+  // No-arg call fetches ALL negotiation records (backend treats missing
+  // ids as "return everything"); an explicit empty array stays disabled.
   return trpc.negotiation.listAll.useQuery(
-    { influencerIds: ids },
-    { enabled: ids.length > 0 }
+    influencerIds && influencerIds.length > 0 ? { influencerIds } : undefined,
+    { enabled: influencerIds === undefined || influencerIds.length > 0 }
   );
 }
 
