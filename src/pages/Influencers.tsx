@@ -507,7 +507,7 @@ export default function Influencers() {
       {/* Detail */}
       {selectedInfluencer && (
         <InfluencerDetail
-          inf={selectedInfluencer}
+          influencer={selectedInfluencer}
           open={detailOpen}
           onClose={() => setDetailOpen(false)}
           onUpdate={(updated: any) => {

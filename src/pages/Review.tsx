@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerList, useNegotiationListAll } from "@/lib/influencer-api";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
+import InfluencerDetail from "@/components/InfluencerDetail";
 import { ShieldCheck, Handshake, FileText, Video, BarChart3, MapPin, Hash } from "lucide-react";
 
 const platformLabels: Record<string, string> = {
@@ -20,13 +21,16 @@ function displayCountry(code: string): string {
   return map[code] || code;
 }
 
-// Read-only card for review mode
-function ReviewCard({ inf }: { inf: any }) {
+// Read-only card for review mode — click opens the full detail dialog
+function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
   if (!inf || !inf.id) return null;
   const coopItems = parseCoopTypes(inf.coopTypes);
 
   return (
-    <div className="card-surface p-4 relative opacity-80 hover:opacity-100 transition-opacity">
+    <div
+      onClick={onClick}
+      className="card-surface p-4 relative opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+    >
       <div className="flex gap-3">
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
@@ -93,6 +97,8 @@ function ReviewCard({ inf }: { inf: any }) {
 export default function Review() {
   const { isAdmin } = useAuth();
   const [reviewTab, setReviewTab] = useState<"price"|"script"|"video"|"post">("price");
+  const [selectedInfluencer, setSelectedInfluencer] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Fetch ALL influencers directly (not via categories) so uncategorized ones also show
   const { data: listData } = useInfluencerList({});
@@ -189,7 +195,14 @@ export default function Review() {
       {/* Read-only cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filteredForReview.map((inf: any) => (
-          <ReviewCard key={inf.id} inf={inf} />
+          <ReviewCard
+            key={inf.id}
+            inf={inf}
+            onClick={() => {
+              setSelectedInfluencer(inf);
+              setDetailOpen(true);
+            }}
+          />
         ))}
       </div>
 
@@ -197,6 +210,16 @@ export default function Review() {
         <div className="flex items-center justify-center h-[30vh]">
           <p className="text-[#666] text-sm">暂无待审核项目</p>
         </div>
+      )}
+
+      {/* Card detail dialog */}
+      {selectedInfluencer && (
+        <InfluencerDetail
+          influencer={selectedInfluencer}
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          onUpdate={(updated: any) => setSelectedInfluencer(updated)}
+        />
       )}
     </div>
   );
