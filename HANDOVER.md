@@ -18,8 +18,9 @@
 - 旧历史备份分支: `backup/pre-vercel-fix`
 
 ## 目录结构与部署架构（重要）
-- `api/index.ts` — 唯一的 Serverless Function 入口（`@hono/node-server/vercel`）。
+- `api/index.ts` — 唯一的 Serverless Function 入口（自研 Node 风格 handler：手动缓冲请求体 → 构造 Fetch Request → 流式回写响应）。
   ⚠️ **api/ 下只能有这一个文件**：Vercel 会把 api/ 下每个 .ts 都构建成独立函数（Hobby 套餐上限 12 个/次部署）。
+  ⚠️ **不要用 `@hono/node-server/vercel` 的 `handle`**：它对 Vercel 预缓冲的请求体做懒桥接会永久挂起——所有 POST 变更 30 秒超时、GET 正常；鉴权中间件先于读 body 抛 401 所以极具迷惑性（2026-07-17 踩坑）。
 - `server/` — 全部后端代码（boot.ts Hono 入口、20 个 tRPC 路由、lib/、kimi/、queries/）
 - **强制约定**：`server/`、`db/`、`contracts/`、`api/` 内所有相对导入必须带 `.js` 扩展名（Vercel 以 nodenext 规则编译 ESM TS，缺扩展名会在运行时 ERR_MODULE_NOT_FOUND）。
 - 数据库连接必须显式 SSL：`server/queries/connection.ts` 解析 DATABASE_URL 的 sslaccept/sslmode 参数启用 TLS（TiDB 拒绝明文连接，mysql2 会忽略 URL 里的 sslaccept，必须转为配置项）。
