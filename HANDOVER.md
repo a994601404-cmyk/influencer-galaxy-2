@@ -45,8 +45,12 @@ tsconfig.server.json，并检测 .env 泄密。结构不识别时会 WARN 并提
 - **切勿提交平台包里的 .env（含生产密钥）**
 
 ## 环境变量（均已在 Vercel 项目配置，敏感变量不可回读）
-`APP_ID`、`APP_SECRET`、`DATABASE_URL`、`KIMI_AUTH_URL`、`KIMI_OPEN_URL`、`VITE_APP_ID`、`VITE_KIMI_AUTH_URL`、`OWNER_UNION_ID`、`NPM_CONFIG_REGISTRY`
+`APP_ID`、`APP_SECRET`、`SESSION_SECRET`、`DATABASE_URL`、`KIMI_AUTH_URL`、`KIMI_OPEN_URL`、`VITE_APP_ID`、`VITE_KIMI_AUTH_URL`、`OWNER_UNION_ID`、`NPM_CONFIG_REGISTRY`
 ⚠️ 密钥值永不写入文档或仓库；查看请到 Vercel → Settings → Environment Variables。
+注：`SESSION_SECRET`（2026-07-20 新增）是登录会话 JWT 的专用签名密钥，与 OAuth 的
+`APP_SECRET` 刻意分离——旧 `APP_SECRET` 曾明文泄露过且 Kimi 平台不提供自助重置，
+分离后泄露的 `APP_SECRET` 无法伪造登录会话。该值仅存在于 Vercel（管道写入，无人见过明文）。
+轮换 `APP_SECRET` 或 `SESSION_SECRET` 都会使全部已登录会话失效（重新登录即可）。
 
 ## 数据库表（19 张）
 users, influencers, negotiationRecords, scriptReviews, videoReviews, postRecords,

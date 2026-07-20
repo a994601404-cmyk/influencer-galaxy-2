@@ -25,6 +25,10 @@ function resolveDatabaseUrl(): string {
 export const env = {
   appId: required("APP_ID"),
   appSecret: required("APP_SECRET"),
+  // Dedicated key for signing login-session JWTs. Deliberately separate from
+  // APP_SECRET (OAuth client secret) so a leaked APP_SECRET cannot be used to
+  // forge sessions. Generated once, lives only in Vercel env vars.
+  sessionSecret: required("SESSION_SECRET"),
   isProduction: process.env.NODE_ENV === "production",
   databaseUrl: resolveDatabaseUrl(),
   kimiAuthUrl: required("KIMI_AUTH_URL"),
