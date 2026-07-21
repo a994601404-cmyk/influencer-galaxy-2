@@ -33,11 +33,12 @@ export const cardCategoryRouter = createRouter({
       }
       const categories = catRows as any[];
 
-      // Get all items with influencer data
+      // Get all items with influencer data (exclude trashed cards)
       const [itemRows] = await conn.execute(
         `SELECT c.*, i.* FROM cardCategoryItems c
          JOIN influencers i ON c.influencerId = i.id
          WHERE c.categoryId IN (SELECT id FROM cardCategories WHERE userUnionId = ?)
+           AND i.hidden != 2
          ORDER BY c.isPinned DESC, c.sortOrder ASC`,
         [unionId]
       );
