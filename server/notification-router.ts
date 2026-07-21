@@ -52,6 +52,8 @@ export function getBeijingTimeFull(): string {
 }
 
 // ─── Helper: Create notification ──────────────────────────────
+// Notification delivery is best-effort: a failure (e.g. enum mismatch,
+// DB hiccup) must never break the caller's main operation.
 export async function createNotification(opts: {
   receiverUnionId: string;
   type: string;
@@ -61,28 +63,32 @@ export async function createNotification(opts: {
   relatedType?: string;
   isTest?: boolean;
 }) {
-  const conn = await getRawConnection();
-  const now = getBeijingTime();
-  const isTestVal = opts.isTest ? 1 : 0;
-  const [result] = await conn.execute(
-    `INSERT INTO notifications (receiverUnionId, type, title, message, relatedId, relatedType, isRead, isTest, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-    [opts.receiverUnionId, opts.type, opts.title, opts.message,
-     opts.relatedId ?? null, opts.relatedType ?? null, isTestVal, now]
-  );
+  try {
+    const conn = await getRawConnection();
+    const now = getBeijingTime();
+    const isTestVal = opts.isTest ? 1 : 0;
+    const [result] = await conn.execute(
+      `INSERT INTO notifications (receiverUnionId, type, title, message, relatedId, relatedType, isRead, isTest, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [opts.receiverUnionId, opts.type, opts.title, opts.message,
+       opts.relatedId ?? null, opts.relatedType ?? null, isTestVal, now]
+    );
 
-  // Push to SSE if user has an active connection
-  const insertId = (result as any)?.insertId ?? 0;
-  pushNotification(opts.receiverUnionId, {
-    type: "new_notification",
-    id: insertId,
-    notificationType: opts.type,
-    title: opts.title,
-    message: opts.message,
-    relatedId: opts.relatedId,
-    relatedType: opts.relatedType,
-    createdAt: now,
-  }).catch(() => { /* ignore SSE push failures */ });
+    // Push to SSE if user has an active connection
+    const insertId = (result as any)?.insertId ?? 0;
+    pushNotification(opts.receiverUnionId, {
+      type: "new_notification",
+      id: insertId,
+      notificationType: opts.type,
+      title: opts.title,
+      message: opts.message,
+      relatedId: opts.relatedId,
+      relatedType: opts.relatedType,
+      createdAt: now,
+    }).catch(() => { /* ignore SSE push failures */ });
+  } catch (error) {
+    console.error("[notification] createNotification failed (non-fatal):", error);
+  }
 }
 
 // ─── Router ──────────────────────────────────────────────────
