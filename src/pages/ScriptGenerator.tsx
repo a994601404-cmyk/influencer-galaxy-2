@@ -77,7 +77,7 @@ export default function ScriptGenerator() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Sparkles className="w-5 h-5 text-[#ccff00]" />
+        <Sparkles className="w-5 h-5 text-brand" />
         <h1 className="section-title">AI 脚本生成</h1>
       </div>
 
@@ -86,56 +86,56 @@ export default function ScriptGenerator() {
         <div className="lg:col-span-2 space-y-4">
           {/* Influencer */}
           <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-3"><UserCircle className="w-4 h-4 text-[#ccff00]" /><h3 className="text-sm font-bold text-white">选择网红 *</h3></div>
+            <div className="flex items-center gap-2 mb-3"><UserCircle className="w-4 h-4 text-brand" /><h3 className="text-sm font-bold text-content">选择网红 *</h3></div>
             <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto scrollbar-thin">
               {influencers.map((inf) => (
                 <button key={inf.id} onClick={() => setSelectedInfluencer(inf.id)}
-                  className={`flex items-center gap-2 p-2 rounded-xl transition-all text-left ${selectedInfluencer === inf.id ? "bg-[#ccff00]/10 border border-[#ccff00]/30" : "bg-white/[0.02] border border-transparent hover:bg-white/[0.04]"}`}>
+                  className={`flex items-center gap-2 p-2 rounded-xl transition-all text-left ${selectedInfluencer === inf.id ? "bg-lime/10 border border-brand/30" : "bg-hover border border-transparent hover:bg-hover"}`}>
                   <img src={inf.avatar} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-                  <div className="min-w-0"><p className="text-[11px] text-white truncate font-medium">{inf.name}</p><p className="text-[9px] text-[#666]">{inf.niche}</p></div>
+                  <div className="min-w-0"><p className="text-[11px] text-content truncate font-medium">{inf.name}</p><p className="text-[9px] text-faint">{inf.niche}</p></div>
                 </button>
               ))}
             </div>
             {selectedInf && (
-              <div className="mt-2 p-2.5 rounded-xl bg-[#ccff00]/5 border border-[#ccff00]/15 flex items-center gap-2">
-                <CheckCircle className="w-3.5 h-3.5 text-[#ccff00]" />
-                <span className="text-xs text-white font-medium">{selectedInf.name}</span>
-                <span className="text-[10px] text-[#666]">@{selectedInf.platform} · {selectedInf.niche}</span>
+              <div className="mt-2 p-2.5 rounded-xl bg-lime/5 border border-brand/15 flex items-center gap-2">
+                <CheckCircle className="w-3.5 h-3.5 text-brand" />
+                <span className="text-xs text-content font-medium">{selectedInf.name}</span>
+                <span className="text-[10px] text-faint">@{selectedInf.platform} · {selectedInf.niche}</span>
               </div>
             )}
           </div>
 
           {/* Product */}
           <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-3"><Package className="w-4 h-4 text-[#06b6d4]" /><h3 className="text-sm font-bold text-white">产品信息</h3></div>
+            <div className="flex items-center gap-2 mb-3"><Package className="w-4 h-4 text-cy" /><h3 className="text-sm font-bold text-content">产品信息</h3></div>
             <div className="space-y-2.5">
-              <div><label className="text-[11px] text-[#666] mb-1 block">产品名称 *</label><input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="例如：极光美白精华"
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" /></div>
-              <div><label className="text-[11px] text-[#666] mb-1 block">产品类别</label><select value={productCategory} onChange={(e) => setProductCategory(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+              <div><label className="text-[11px] text-faint mb-1 block">产品名称 *</label><input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="例如：极光美白精华"
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30" /></div>
+              <div><label className="text-[11px] text-faint mb-1 block">产品类别</label><select value={productCategory} onChange={(e) => setProductCategory(e.target.value)}
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 <option value="beauty">美妆护肤</option><option value="tech">数码科技</option><option value="fashion">时尚穿搭</option><option value="food">美食饮品</option><option value="fitness">健身运动</option><option value="lifestyle">生活方式</option>
               </select></div>
-              <div><label className="text-[11px] text-[#666] mb-1 block">核心卖点 *（逗号分隔）</label><textarea value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} placeholder="7天见效，烟酰胺+维C双效，轻薄不闷痘" rows={3}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" /></div>
+              <div><label className="text-[11px] text-faint mb-1 block">核心卖点 *（逗号分隔）</label><textarea value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} placeholder="7天见效，烟酰胺+维C双效，轻薄不闷痘" rows={3}
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" /></div>
             </div>
           </div>
 
           {/* Style */}
           <div className="card-surface p-4">
-            <div className="flex items-center gap-2 mb-3"><Lightbulb className="w-4 h-4 text-[#f59e0b]" /><h3 className="text-sm font-bold text-white">脚本风格 & 时长</h3></div>
+            <div className="flex items-center gap-2 mb-3"><Lightbulb className="w-4 h-4 text-[#f59e0b]" /><h3 className="text-sm font-bold text-content">脚本风格 & 时长</h3></div>
             <div className="space-y-1.5">
               {personaStyles.map((style) => (
                 <button key={style.value} onClick={() => setPersonaStyle(style.value)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left ${personaStyle === style.value ? "bg-[#ccff00]/8 border border-[#ccff00]/25" : "bg-white/[0.02] border border-transparent hover:bg-white/[0.04]"}`}>
-                  <div><p className="text-xs text-white font-medium">{style.label}</p><p className="text-[9px] text-[#666]">{style.desc}</p></div>
-                  {personaStyle === style.value && <CheckCircle className="w-3.5 h-3.5 text-[#ccff00]" />}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left ${personaStyle === style.value ? "bg-lime/8 border border-brand/25" : "bg-hover border border-transparent hover:bg-hover"}`}>
+                  <div><p className="text-xs text-content font-medium">{style.label}</p><p className="text-[9px] text-faint">{style.desc}</p></div>
+                  {personaStyle === style.value && <CheckCircle className="w-3.5 h-3.5 text-brand" />}
                 </button>
               ))}
             </div>
-            <div className="mt-3"><label className="text-[11px] text-[#666] mb-1.5 block flex items-center gap-1"><Clock className="w-3 h-3" />视频时长</label>
+            <div className="mt-3"><label className="text-[11px] text-faint mb-1.5 block flex items-center gap-1"><Clock className="w-3 h-3" />视频时长</label>
               <div className="flex gap-1.5">
                 {durations.map((d) => (
-                  <button key={d} onClick={() => setDuration(d)} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${duration === d ? "bg-[#ccff00] text-black" : "bg-white/[0.03] text-[#666] hover:text-white"}`}>{d}秒</button>
+                  <button key={d} onClick={() => setDuration(d)} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${duration === d ? "bg-lime text-black" : "bg-hover text-faint hover:text-content"}`}>{d}秒</button>
                 ))}
               </div>
             </div>
@@ -149,18 +149,18 @@ export default function ScriptGenerator() {
           {savedScripts.length > 0 && (
             <div className="card-surface p-3">
               <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-between w-full text-left">
-                <div className="flex items-center gap-2"><History className="w-3.5 h-3.5 text-[#666]" /><span className="text-xs font-medium text-white">历史脚本 ({savedScripts.length})</span></div>
-                {showHistory ? <ChevronUp className="w-3.5 h-3.5 text-[#666]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#666]" />}
+                <div className="flex items-center gap-2"><History className="w-3.5 h-3.5 text-faint" /><span className="text-xs font-medium text-content">历史脚本 ({savedScripts.length})</span></div>
+                {showHistory ? <ChevronUp className="w-3.5 h-3.5 text-faint" /> : <ChevronDown className="w-3.5 h-3.5 text-faint" />}
               </button>
               {showHistory && (
                 <div className="mt-2 space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-thin">
                   {savedScripts.map((s) => (
-                    <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.02]">
+                    <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg bg-hover">
                       <button onClick={() => setGeneratedScript(s)} className="flex-1 text-left min-w-0">
-                        <p className="text-[11px] text-white truncate">{s.productName}</p>
-                        <p className="text-[9px] text-[#666]">{s.personaStyle} · {s.duration}秒</p>
+                        <p className="text-[11px] text-content truncate">{s.productName}</p>
+                        <p className="text-[9px] text-faint">{s.personaStyle} · {s.duration}秒</p>
                       </button>
-                      <Link to={`/storyboard?script=${s.id}`}><Button variant="ghost" size="sm" className="text-[#ccff00] hover:text-[#ccff00] h-6 px-1.5"><Sparkles className="w-3 h-3" /></Button></Link>
+                      <Link to={`/storyboard?script=${s.id}`}><Button variant="ghost" size="sm" className="text-brand hover:text-brand h-6 px-1.5"><Sparkles className="w-3 h-3" /></Button></Link>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)} className="text-red-400 hover:text-red-300 h-6 px-1.5"><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   ))}
@@ -181,8 +181,8 @@ export default function ScriptGenerator() {
             <div className="space-y-3 fade-in-up">
               <div className="card-surface p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-black text-white tracking-tight">{generatedScript.productName}</h3>
-                  <p className="text-xs text-[#666]">{selectedInf?.name || ""} · {generatedScript.duration}秒 · {personaStyles.find((s) => s.value === generatedScript.personaStyle)?.label}</p>
+                  <h3 className="text-base font-black text-content tracking-tight">{generatedScript.productName}</h3>
+                  <p className="text-xs text-faint">{selectedInf?.name || ""} · {generatedScript.duration}秒 · {personaStyles.find((s) => s.value === generatedScript.personaStyle)?.label}</p>
                 </div>
                 <Link to={`/storyboard?script=${generatedScript.id}`}><button className="btn-lime text-xs flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" />查看分镜</button></Link>
               </div>
@@ -196,16 +196,16 @@ export default function ScriptGenerator() {
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ backgroundColor: tl.bg, color: tl.color }}>
                             {segment.timestamp}
                           </div>
-                          {idx < (generatedScript.segments?.length || 0) - 1 && <div className="w-0.5 flex-1 bg-white/[0.04] my-1" />}
+                          {idx < (generatedScript.segments?.length || 0) - 1 && <div className="w-0.5 flex-1 bg-hover my-1" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="text-[10px] px-2 py-0.5 rounded-md font-bold" style={{ backgroundColor: tl.bg, color: tl.color }}>{tl.label}</span>
                           </div>
-                          <p className="text-sm text-white leading-relaxed mb-2.5">{segment.text}</p>
+                          <p className="text-sm text-content leading-relaxed mb-2.5">{segment.text}</p>
                           <div className="grid grid-cols-2 gap-1.5 text-xs">
-                            <div className="p-2 rounded-lg bg-white/[0.02]"><p className="text-[#666] mb-0.5 flex items-center gap-1 text-[10px] font-medium"><Film className="w-3 h-3" />画面</p><p className="text-[#888] text-[10px] leading-relaxed">{segment.visual}</p></div>
-                            <div className="p-2 rounded-lg bg-white/[0.02]"><p className="text-[#666] mb-0.5 flex items-center gap-1 text-[10px] font-medium"><Volume2 className="w-3 h-3" />声音</p><p className="text-[#888] text-[10px] leading-relaxed">{segment.audio}</p></div>
+                            <div className="p-2 rounded-lg bg-hover"><p className="text-faint mb-0.5 flex items-center gap-1 text-[10px] font-medium"><Film className="w-3 h-3" />画面</p><p className="text-sub text-[10px] leading-relaxed">{segment.visual}</p></div>
+                            <div className="p-2 rounded-lg bg-hover"><p className="text-faint mb-0.5 flex items-center gap-1 text-[10px] font-medium"><Volume2 className="w-3 h-3" />声音</p><p className="text-sub text-[10px] leading-relaxed">{segment.audio}</p></div>
                           </div>
                         </div>
                       </div>
@@ -216,10 +216,10 @@ export default function ScriptGenerator() {
             </div>
           ) : (
             <div className="card-surface p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-              <div className="w-14 h-14 rounded-2xl bg-[#ccff00]/10 flex items-center justify-center mb-4"><Wand2 className="w-7 h-7 text-[#ccff00]" /></div>
-              <h3 className="text-base font-bold text-white mb-1">开始生成您的脚本</h3>
-              <p className="text-xs text-[#666] max-w-xs mb-4">选择网红、填写产品信息，AI 将深度个性化生成带时间戳的专业脚本</p>
-              <div className="text-[10px] text-[#555] space-y-1">
+              <div className="w-14 h-14 rounded-2xl bg-lime/10 flex items-center justify-center mb-4"><Wand2 className="w-7 h-7 text-brand" /></div>
+              <h3 className="text-base font-bold text-content mb-1">开始生成您的脚本</h3>
+              <p className="text-xs text-faint max-w-xs mb-4">选择网红、填写产品信息，AI 将深度个性化生成带时间戳的专业脚本</p>
+              <div className="text-[10px] text-faint space-y-1">
                 <p>· 支持 15/30/45/60 秒多种时长</p>
                 <p>· 5 种网红人设风格</p>
                 <p>· 自动生成时间戳 + 画面指导 + 声音设计</p>

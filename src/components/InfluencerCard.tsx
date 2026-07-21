@@ -52,7 +52,7 @@ interface InfluencerCardProps {
 function SignalDot({ type }: { type: string }) {
   const labels: Record<string, string> = { price: "谈价", script: "脚本", video: "视频" };
   return (
-    <span className="signal-blink w-3 h-3 rounded-full bg-[#ccff00] inline-block mx-0.5"
+    <span className="signal-blink w-3 h-3 rounded-full bg-lime inline-block mx-0.5"
       title={`新${labels[type] || type}审核`} />
   );
 }
@@ -103,10 +103,10 @@ export default function InfluencerCard({
       ref={setDropRef}
       onClick={batchMode ? onToggleSelect : onSelect}
       className={`card-surface p-4 cursor-pointer transition-all relative ${
-        isSelected && !batchMode ? "border-[#ccff00]/30 bg-[#ccff00]/[0.02]" : ""
-      } ${isPinned ? "card-pinned" : ""} ${batchMode && checked ? "border-[#ccff00]/50 bg-[#ccff00]/[0.04]" : ""} ${
+        isSelected && !batchMode ? "border-brand/30 bg-lime/[0.02]" : ""
+      } ${isPinned ? "card-pinned" : ""} ${batchMode && checked ? "border-brand/50 bg-lime/[0.04]" : ""} ${
         isDragging ? "opacity-30" : ""
-      } ${isOver && !isDragging ? "ring-2 ring-[#ccff00]/50" : ""}`}
+      } ${isOver && !isDragging ? "ring-2 ring-lime/50" : ""}`}
     >
       {/* Drag handle (left edge) */}
       {dragEnabled && (
@@ -115,7 +115,7 @@ export default function InfluencerCard({
           {...listeners}
           {...attributes}
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-5 h-10 rounded-md flex items-center justify-center text-[#444] hover:text-[#ccff00] hover:bg-white/[0.04] cursor-grab active:cursor-grabbing transition-colors touch-none"
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-5 h-10 rounded-md flex items-center justify-center text-faint hover:text-brand hover:bg-hover cursor-grab active:cursor-grabbing transition-colors touch-none"
           title="拖动调整位置/分类"
         >
           <GripVertical className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export default function InfluencerCard({
       {batchMode && (
         <div
           className={`absolute top-3 left-3 w-5 h-5 rounded-md border flex items-center justify-center z-20 transition-all ${
-            checked ? "bg-[#ccff00] border-[#ccff00]" : "bg-black/50 border-white/[0.15]"
+            checked ? "bg-lime border-brand" : "bg-black/50 border-line"
           }`}
         >
           {checked && <Check className="w-3.5 h-3.5 text-black" />}
@@ -138,7 +138,7 @@ export default function InfluencerCard({
         {onMoveForward && (
           <button
             onClick={(e) => { e.stopPropagation(); onMoveForward(); }}
-            className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
             title="前移"
           >
             <ChevronLeft className="w-3 h-3" />
@@ -147,7 +147,7 @@ export default function InfluencerCard({
         {onMoveBackward && (
           <button
             onClick={(e) => { e.stopPropagation(); onMoveBackward(); }}
-            className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
             title="后移"
           >
             <ChevronRight className="w-3 h-3" />
@@ -157,19 +157,19 @@ export default function InfluencerCard({
           onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
           className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
             isPinned
-              ? "bg-[#ccff00]/20 text-[#ccff00]"
-              : "bg-white/[0.04] text-[#666] hover:text-[#ccff00] hover:bg-[#ccff00]/10"
+              ? "bg-lime/20 text-brand"
+              : "bg-hover text-faint hover:text-brand hover:bg-lime/10"
           }`}
           title={isPinned ? "取消置顶" : "置顶"}
         >
-          <Pin className={`w-3 h-3 ${isPinned ? "fill-[#ccff00]" : ""}`} />
+          <Pin className={`w-3 h-3 ${isPinned ? "fill-lime" : ""}`} />
         </button>
 
         <div className={`flex items-center rounded-full px-1 py-0.5 transition-all ${hasAnySignal ? "bg-black/60" : "bg-transparent"}`}>
           {signals.length > 0 ? (
             signals.map((s) => <SignalDot key={s} type={s} />)
           ) : (
-            <span className="w-2 h-2 rounded-full bg-[#333] inline-block" title="暂无新审核" />
+            <span className="w-2 h-2 rounded-full bg-faint inline-block" title="暂无新审核" />
           )}
         </div>
 
@@ -178,7 +178,7 @@ export default function InfluencerCard({
           <div className="relative">
             <button
               onClick={(e) => { e.stopPropagation(); setShowMoveMenu(!showMoveMenu); }}
-              className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+              className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
               title="移动分类"
             >
               <ArrowRightLeft className="w-3 h-3" />
@@ -186,12 +186,12 @@ export default function InfluencerCard({
             {showMoveMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
-                <div className="absolute top-full right-0 mt-1 w-32 bg-[#1a1a1a] border border-white/[0.08] rounded-lg shadow-xl z-50 py-1">
+                <div className="absolute top-full right-0 mt-1 w-32 bg-elevated border border-line rounded-lg shadow-xl z-50 py-1">
                   {categories.filter((c: any) => c.id !== currentCategoryId).map((cat: any) => (
                     <button
                       key={cat.id}
                       onClick={(e) => { e.stopPropagation(); onMoveCategory(cat.id); setShowMoveMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-[#888] hover:text-white hover:bg-white/[0.04] transition-colors"
+                      className="w-full text-left px-3 py-1.5 text-xs text-sub hover:text-content hover:bg-hover transition-colors"
                     >
                       {cat.name}
                     </button>
@@ -205,7 +205,7 @@ export default function InfluencerCard({
         {isAdmin && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleHide(); }}
-            className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
             title={inf.hidden ? "显示" : "隐藏"}
           >
             {inf.hidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -228,43 +228,43 @@ export default function InfluencerCard({
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}
-          className={`w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06] ${batchMode ? "ml-6" : ""}`}
+          className={`w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-line ${batchMode ? "ml-6" : ""}`}
         />
         <div className="flex-1 min-w-0 pr-20">
-          <h3 className="text-sm font-bold text-white truncate">{inf.name}</h3>
-          <p className="text-[11px] text-[#666] truncate">{inf.handle}</p>
+          <h3 className="text-sm font-bold text-content truncate">{inf.name}</h3>
+          <p className="text-[11px] text-faint truncate">{inf.handle}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888]">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub">
               {platformLabels[inf.platform] || inf.platform}
             </span>
             {inf.location && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888] flex items-center gap-0.5">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
                 <MapPin className="w-2.5 h-2.5" />{displayCountry(inf.location) || inf.location}
               </span>
             )}
             {inf.niche && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888] flex items-center gap-0.5">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
                 <Hash className="w-2.5 h-2.5" />{getNicheLabel(inf.niche)}
               </span>
             )}
             {isOwner && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00]/80">我的</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-lime/10 text-brand/80">我的</span>
             )}
           </div>
         </div>
       </div>
 
       {/* Prices */}
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.04]">
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-line">
         <div className="flex-1">
-          <p className="text-[9px] text-[#666]">网红报价</p>
-          <p className="text-sm font-bold text-[#ccff00]">
+          <p className="text-[9px] text-faint">网红报价</p>
+          <p className="text-sm font-bold text-brand">
             {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : "—"}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-[9px] text-[#666]">审核报价</p>
-          <p className="text-sm font-bold text-[#06b6d4]">
+          <p className="text-[9px] text-faint">审核报价</p>
+          <p className="text-sm font-bold text-cy">
             {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : "—"}
           </p>
         </div>
@@ -277,11 +277,11 @@ export default function InfluencerCard({
       {coopItems.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
           {coopItems.map((item) => (
-            <span key={item.platform} className="text-[9px] text-[#888]">
-              <span className="text-[#aaa]">{item.platform}</span>
-              <span className="text-[#555] mx-0.5">·</span>
+            <span key={item.platform} className="text-[9px] text-sub">
+              <span className="text-sub">{item.platform}</span>
+              <span className="text-faint mx-0.5">·</span>
               {item.types.map((t) => (
-                <span key={t} className="text-[#ccff00]/60 mr-1">{t}</span>
+                <span key={t} className="text-brand/60 mr-1">{t}</span>
               ))}
             </span>
           ))}
@@ -289,7 +289,7 @@ export default function InfluencerCard({
       )}
 
       {inf.bio && (
-        <p className="text-[10px] text-[#666] mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
+        <p className="text-[10px] text-faint mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
       )}
 
       {profileLinks.length > 0 && (
@@ -301,7 +301,7 @@ export default function InfluencerCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-[10px] text-[#06b6d4]/60 hover:text-[#06b6d4] transition-colors"
+              className="inline-flex items-center gap-1 text-[10px] text-cy/60 hover:text-cy transition-colors"
             >
               <ExternalLink className="w-3 h-3" />{link.platform}
             </a>

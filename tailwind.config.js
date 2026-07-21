@@ -5,6 +5,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // ─── Theme tokens (dual light/dark via CSS vars) ──────
+        base: "rgb(var(--base-rgb) / <alpha-value>)",
+        surface: "var(--bg-surface)",
+        elevated: "var(--bg-elevated)",
+        hover: "var(--bg-hover)",
+        content: "var(--text-primary)",
+        sub: "var(--text-secondary)",
+        faint: "var(--text-muted)",
+        line: "var(--line)",
+        lime: "#ccff00",
+        brand: "rgb(var(--brand-rgb) / <alpha-value>)",
+        cy: "rgb(var(--cy-rgb) / <alpha-value>)",
+        // ─── shadcn tokens ────────────────────────────────────
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

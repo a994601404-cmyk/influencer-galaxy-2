@@ -65,14 +65,14 @@ export function ChangePasswordCard() {
   };
 
   return (
-    <div className="mb-6 rounded-xl bg-[#111] border border-white/[0.05] p-4">
+    <div className="mb-6 rounded-xl bg-elevated border border-line p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 flex items-center justify-center">
-          <Lock className="w-4 h-4 text-[#ccff00]" />
+        <div className="w-8 h-8 rounded-lg bg-lime/10 flex items-center justify-center">
+          <Lock className="w-4 h-4 text-brand" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-white">修改密码</h3>
-          <p className="text-[10px] text-[#666]">
+          <h3 className="text-sm font-bold text-content">修改密码</h3>
+          <p className="text-[10px] text-faint">
             {hasPassword
               ? `当前账号：${me.email || me.name || "未知"}`
               : "当前账号通过 Kimi 登录，设置密码后也可以用邮箱 + 密码登录"}
@@ -89,7 +89,7 @@ export function ChangePasswordCard() {
             value={oldPassword}
             onChange={(e) => setOldPassword(e.target.value)}
             placeholder="当前密码"
-            className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+            className="w-full bg-base border border-line rounded-xl px-3 py-2.5 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
           />
         )}
         <div className="relative">
@@ -98,12 +98,12 @@ export function ChangePasswordCard() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="新密码（至少 8 位）"
-            className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2.5 pr-10 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+            className="w-full bg-base border border-line rounded-xl px-3 py-2.5 pr-10 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
           />
           <button
             type="button"
             onClick={() => setShow(!show)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-content"
           >
             {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -113,7 +113,7 @@ export function ChangePasswordCard() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="确认新密码"
-          className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+          className="w-full bg-base border border-line rounded-xl px-3 py-2.5 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
         />
         <button
           type="submit"
@@ -173,14 +173,14 @@ export function AdminResetPasswordCard() {
   };
 
   return (
-    <div className="mb-6 rounded-xl bg-[#111] border border-white/[0.05] p-4">
+    <div className="mb-6 rounded-xl bg-elevated border border-line p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 flex items-center justify-center">
-          <ShieldCheck className="w-4 h-4 text-[#ccff00]" />
+        <div className="w-8 h-8 rounded-lg bg-lime/10 flex items-center justify-center">
+          <ShieldCheck className="w-4 h-4 text-brand" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-white">用户密码重置</h3>
-          <p className="text-[10px] text-[#666]">
+          <h3 className="text-sm font-bold text-content">用户密码重置</h3>
+          <p className="text-[10px] text-faint">
             处理找回密码请求：为用户生成新密码并线下告知（用户会收到站内通知）
           </p>
         </div>
@@ -192,25 +192,25 @@ export function AdminResetPasswordCard() {
         {(usersList || []).map((u) => (
           <div
             key={u.id}
-            className="rounded-xl bg-[#0a0a0a] border border-white/[0.04] px-3 py-2.5"
+            className="rounded-xl bg-base border border-line px-3 py-2.5"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-medium text-white truncate">
+                <p className="text-xs font-medium text-content truncate">
                   {u.name || "未命名"}
                   {u.role === "admin" && (
-                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00]">管理员</span>
+                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-lime/10 text-brand">管理员</span>
                   )}
                   {!(u as any).hasPassword && (
-                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-[#666]">Kimi 登录</span>
+                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-hover text-faint">Kimi 登录</span>
                   )}
                 </p>
-                <p className="text-[10px] text-[#555] truncate">{u.email || u.unionId}</p>
+                <p className="text-[10px] text-faint truncate">{u.email || u.unionId}</p>
               </div>
               {editingId !== u.id && (
                 <button
                   onClick={() => startEdit(u.id)}
-                  className="shrink-0 text-[10px] px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-[#999] hover:text-white hover:bg-white/[0.08] flex items-center gap-1 transition-colors"
+                  className="shrink-0 text-[10px] px-2.5 py-1.5 rounded-lg bg-hover text-sub hover:text-content hover:bg-hover flex items-center gap-1 transition-colors"
                 >
                   <KeyRound className="w-3 h-3" />
                   重置密码
@@ -225,20 +225,20 @@ export function AdminResetPasswordCard() {
                     type={show ? "text" : "password"}
                     value={pw}
                     onChange={(e) => setPw(e.target.value)}
-                    className="w-full bg-[#111] border border-[#ccff00]/20 rounded-lg px-2.5 py-2 pr-14 text-xs text-white font-mono focus:outline-none focus:border-[#ccff00]/50"
+                    className="w-full bg-elevated border border-brand/20 rounded-lg px-2.5 py-2 pr-14 text-xs text-content font-mono focus:outline-none focus:border-brand/50"
                   />
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
                     <button
                       type="button"
                       onClick={() => setShow(!show)}
-                      className="p-1 text-[#555] hover:text-white"
+                      className="p-1 text-faint hover:text-content"
                     >
                       {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       type="button"
                       onClick={() => setPw(generatePassword())}
-                      className="p-1 text-[#555] hover:text-[#ccff00]"
+                      className="p-1 text-faint hover:text-brand"
                       title="重新生成"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
@@ -246,7 +246,7 @@ export function AdminResetPasswordCard() {
                     <button
                       type="button"
                       onClick={copy}
-                      className="p-1 text-[#555] hover:text-[#ccff00]"
+                      className="p-1 text-faint hover:text-brand"
                       title="复制"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -262,7 +262,7 @@ export function AdminResetPasswordCard() {
                 </button>
                 <button
                   onClick={() => setEditingId(null)}
-                  className="shrink-0 text-[11px] px-2 py-2 text-[#666] hover:text-white"
+                  className="shrink-0 text-[11px] px-2 py-2 text-faint hover:text-content"
                 >
                   取消
                 </button>
@@ -271,7 +271,7 @@ export function AdminResetPasswordCard() {
           </div>
         ))}
         {usersList && usersList.length === 0 && (
-          <p className="text-[11px] text-[#555] text-center py-3">暂无注册用户</p>
+          <p className="text-[11px] text-faint text-center py-3">暂无注册用户</p>
         )}
       </div>
     </div>

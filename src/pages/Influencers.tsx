@@ -58,7 +58,7 @@ function CategoryDropZone({ categoryId, className, children }: {
     data: { type: "cat", categoryId },
   });
   return (
-    <div ref={setNodeRef} className={`${className ?? ""} rounded-lg transition-shadow ${isOver ? "ring-2 ring-[#ccff00]/40" : ""}`}>
+    <div ref={setNodeRef} className={`${className ?? ""} rounded-lg transition-shadow ${isOver ? "ring-2 ring-lime/40" : ""}`}>
       {children}
     </div>
   );
@@ -390,8 +390,8 @@ export default function Influencers() {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
-          <Users className="w-12 h-12 text-[#333] mx-auto mb-4" />
-          <p className="text-[#888]">请登录查看网红管理</p>
+          <Users className="w-12 h-12 text-faint mx-auto mb-4" />
+          <p className="text-sub">请登录查看网红管理</p>
         </div>
       </div>
     );
@@ -402,15 +402,15 @@ export default function Influencers() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">网红管理</h1>
-          <p className="text-sm text-[#888] mt-1">
+          <h1 className="text-2xl font-bold text-content">网红管理</h1>
+          <p className="text-sm text-sub mt-1">
             {isAdmin ? `共 ${visibleCount} 个网红 · 管理员模式` : `共 ${visibleCount} 个网红`}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setTrashOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-[#888] hover:text-white transition-all text-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-elevated border border-line text-sub hover:text-content transition-all text-sm"
           >
             <Archive className="w-4 h-4" />垃圾箱
             {(trashData || []).length > 0 && (
@@ -421,7 +421,7 @@ export default function Influencers() {
           </button>
           <button
             onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ccff00] text-black font-semibold hover:bg-[#b8e600] transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-lime text-black font-semibold hover:bg-lime transition-all"
           >
             <Plus className="w-4 h-4" />添加网红
           </button>
@@ -431,18 +431,18 @@ export default function Influencers() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索网红..."
-            className="pl-9 pr-4 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-white text-sm focus:outline-none focus:border-[#ccff00]/30 w-48"
+            className="pl-9 pr-4 py-2 rounded-lg bg-elevated border border-line text-content text-sm focus:outline-none focus:border-brand/30 w-48"
           />
         </div>
         <select
           value={platform}
           onChange={(e) => setPlatform(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-white text-sm focus:outline-none focus:border-[#ccff00]/30"
+          className="px-3 py-2 rounded-lg bg-elevated border border-line text-content text-sm focus:outline-none focus:border-brand/30"
         >
           <option value="all">全部平台</option>
           <option value="instagram">Instagram</option>
@@ -453,7 +453,7 @@ export default function Influencers() {
         <select
           value={niche}
           onChange={(e) => setNiche(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-white text-sm focus:outline-none focus:border-[#ccff00]/30"
+          className="px-3 py-2 rounded-lg bg-elevated border border-line text-content text-sm focus:outline-none focus:border-brand/30"
         >
           <option value="all">全部领域</option>
           {Object.entries(SELECTABLE_NICHES).map(([k, v]) => (
@@ -464,7 +464,7 @@ export default function Influencers() {
           <select
             value={creator}
             onChange={(e) => setCreator(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-white text-sm focus:outline-none focus:border-[#ccff00]/30"
+            className="px-3 py-2 rounded-lg bg-elevated border border-line text-content text-sm focus:outline-none focus:border-brand/30"
           >
             <option value="all">全部用户</option>
             {creators.map((c) => (
@@ -476,8 +476,8 @@ export default function Influencers() {
           onClick={() => (batchMode ? exitBatchMode() : setBatchMode(true))}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all text-sm ${
             batchMode
-              ? "bg-[#ccff00]/15 border-[#ccff00]/30 text-[#ccff00]"
-              : "bg-[#111] border-white/[0.06] text-[#888] hover:text-white"
+              ? "bg-lime/15 border-brand/30 text-brand"
+              : "bg-elevated border-line text-sub hover:text-content"
           }`}
         >
           <Settings className="w-4 h-4" />{batchMode ? "退出批量" : "批量管理"}
@@ -488,7 +488,7 @@ export default function Influencers() {
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
               placeholder="分类名称"
-              className="px-3 py-2 rounded-lg bg-[#111] border border-[#ccff00]/30 text-white text-sm w-32 focus:outline-none"
+              className="px-3 py-2 rounded-lg bg-elevated border border-brand/30 text-content text-sm w-32 focus:outline-none"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter" && newCatName.trim()) {
@@ -505,13 +505,13 @@ export default function Influencers() {
                 setNewCatName("");
                 setShowNewCatInput(false);
               }}
-              className="px-3 py-2 rounded-lg bg-[#ccff00] text-black text-sm font-medium hover:bg-[#b8e600]"
+              className="px-3 py-2 rounded-lg bg-lime text-black text-sm font-medium hover:bg-lime"
             >
               创建
             </button>
             <button
               onClick={() => { setShowNewCatInput(false); setNewCatName(""); }}
-              className="px-2 py-2 rounded-lg text-[#666] text-sm hover:text-white"
+              className="px-2 py-2 rounded-lg text-faint text-sm hover:text-content"
             >
               取消
             </button>
@@ -519,7 +519,7 @@ export default function Influencers() {
         ) : (
           <button
             onClick={() => setShowNewCatInput(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#111] border border-dashed border-white/[0.1] text-[#666] hover:text-[#ccff00] hover:border-[#ccff00]/30 transition-all text-sm"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-elevated border border-dashed border-line text-faint hover:text-brand hover:border-brand/30 transition-all text-sm"
           >
             <FolderPlus className="w-4 h-4" />新建分类
           </button>
@@ -532,14 +532,14 @@ export default function Influencers() {
         {filteredCategories.map((cat: any, catIndex: number) => (
           <div
             key={cat.id}
-            className="rounded-xl border border-white/[0.06] bg-[#0a0a0a]"
+            className="rounded-xl border border-line bg-base"
           >
             {/* Category header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleExpandMut.mutate({ id: cat.id })}
-                  className="text-[#888] hover:text-white transition-colors"
+                  className="text-sub hover:text-content transition-colors"
                 >
                   {cat.isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
@@ -548,7 +548,7 @@ export default function Influencers() {
                     <input
                       value={editCatName}
                       onChange={(e) => setEditCatName(e.target.value)}
-                      className="px-2 py-1 rounded bg-[#111] border border-white/[0.1] text-white text-sm w-32 focus:outline-none focus:border-[#ccff00]/30"
+                      className="px-2 py-1 rounded bg-elevated border border-line text-content text-sm w-32 focus:outline-none focus:border-brand/30"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && editCatName.trim()) {
@@ -563,19 +563,19 @@ export default function Influencers() {
                         updateCategoryMut.mutate({ id: cat.id, name: editCatName.trim() });
                       }
                       setEditingCatId(null);
-                    }} className="text-[#ccff00]"><Check className="w-3 h-3" /></button>
-                    <button onClick={() => setEditingCatId(null)} className="text-[#666]"><X className="w-3 h-3" /></button>
+                    }} className="text-brand"><Check className="w-3 h-3" /></button>
+                    <button onClick={() => setEditingCatId(null)} className="text-faint"><X className="w-3 h-3" /></button>
                   </div>
                 ) : (
-                  <h3 className="text-sm font-bold text-white">{cat.name}</h3>
+                  <h3 className="text-sm font-bold text-content">{cat.name}</h3>
                 )}
-                <span className="text-xs text-[#666]">({(cat.items || []).length})</span>
+                <span className="text-xs text-faint">({(cat.items || []).length})</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleCategoryReorder(cat.id, -1)}
                   disabled={catIndex === 0}
-                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-white transition-colors disabled:opacity-20 disabled:hover:text-[#555]"
+                  className="w-6 h-6 rounded flex items-center justify-center text-faint hover:text-content transition-colors disabled:opacity-20 disabled:hover:text-faint"
                   title="上移分类"
                 >
                   <ArrowUp className="w-3 h-3" />
@@ -583,14 +583,14 @@ export default function Influencers() {
                 <button
                   onClick={() => handleCategoryReorder(cat.id, 1)}
                   disabled={catIndex === filteredCategories.length - 1}
-                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-white transition-colors disabled:opacity-20 disabled:hover:text-[#555]"
+                  className="w-6 h-6 rounded flex items-center justify-center text-faint hover:text-content transition-colors disabled:opacity-20 disabled:hover:text-faint"
                   title="下移分类"
                 >
                   <ArrowDown className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.name); }}
-                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-[#ccff00] transition-colors"
+                  className="w-6 h-6 rounded flex items-center justify-center text-faint hover:text-brand transition-colors"
                   title="重命名"
                 >
                   <Pencil className="w-3 h-3" />
@@ -601,7 +601,7 @@ export default function Influencers() {
                       deleteCategoryMut.mutate({ id: cat.id });
                     }
                   }}
-                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-red-400 transition-colors"
+                  className="w-6 h-6 rounded flex items-center justify-center text-faint hover:text-red-400 transition-colors"
                   title="删除"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -639,7 +639,7 @@ export default function Influencers() {
                   />
                 ))}
                 {(cat.items || []).length === 0 && (
-                  <div className="col-span-full text-center py-8 text-[#444] text-sm">
+                  <div className="col-span-full text-center py-8 text-faint text-sm">
                     拖拽卡片到此处
                   </div>
                 )}
@@ -651,7 +651,7 @@ export default function Influencers() {
       </div>
       <DragOverlay>
         {activeDragName ? (
-          <div className="px-4 py-2 rounded-xl bg-[#1a1a1a] border border-[#ccff00]/40 text-white text-sm font-bold shadow-2xl">
+          <div className="px-4 py-2 rounded-xl bg-elevated border border-brand/40 text-content text-sm font-bold shadow-2xl">
             {activeDragName}
           </div>
         ) : null}
@@ -662,20 +662,20 @@ export default function Influencers() {
       {visibleCount === 0 && !isLoading && (
         <div className="flex items-center justify-center h-[40vh]">
           <div className="text-center">
-            <Users className="w-12 h-12 text-[#333] mx-auto mb-4" />
-            <p className="text-[#888]">暂无网红数据</p>
+            <Users className="w-12 h-12 text-faint mx-auto mb-4" />
+            <p className="text-sub">暂无网红数据</p>
           </div>
         </div>
       )}
 
       {/* Batch action bar */}
       {batchMode && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 bg-[#141414] border border-white/[0.1] rounded-xl shadow-2xl px-4 py-2.5">
-          <span className="text-xs text-[#888]">已选 <span className="text-[#ccff00] font-bold">{selected.size}</span> 项</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 bg-surface border border-line rounded-xl shadow-2xl px-4 py-2.5">
+          <span className="text-xs text-sub">已选 <span className="text-brand font-bold">{selected.size}</span> 项</span>
           <select
             value={batchTargetCat}
             onChange={(e) => setBatchTargetCat(e.target.value)}
-            className="px-2 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08] text-white text-xs focus:outline-none focus:border-[#ccff00]/30"
+            className="px-2 py-1.5 rounded-lg bg-base border border-line text-content text-xs focus:outline-none focus:border-brand/30"
           >
             <option value="">移动到分类…</option>
             {groupedCategories.map((c: any) => (
@@ -685,7 +685,7 @@ export default function Influencers() {
           <button
             onClick={batchMove}
             disabled={!batchTargetCat || selected.size === 0}
-            className="px-3 py-1.5 rounded-lg bg-[#06b6d4]/15 text-[#06b6d4] text-xs font-medium hover:bg-[#06b6d4]/25 transition-all disabled:opacity-30"
+            className="px-3 py-1.5 rounded-lg bg-cy/15 text-cy text-xs font-medium hover:bg-cy/25 transition-all disabled:opacity-30"
           >
             移动
           </button>
@@ -693,7 +693,7 @@ export default function Influencers() {
             <button
               onClick={batchHide}
               disabled={selected.size === 0}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-[#aaa] text-xs font-medium hover:bg-white/[0.1] transition-all disabled:opacity-30"
+              className="px-3 py-1.5 rounded-lg bg-hover text-sub text-xs font-medium hover:bg-hover transition-all disabled:opacity-30"
             >
               隐藏
             </button>
@@ -707,7 +707,7 @@ export default function Influencers() {
           </button>
           <button
             onClick={exitBatchMode}
-            className="px-3 py-1.5 rounded-lg text-[#666] text-xs hover:text-white transition-all"
+            className="px-3 py-1.5 rounded-lg text-faint text-xs hover:text-content transition-all"
           >
             取消
           </button>
@@ -718,38 +718,38 @@ export default function Influencers() {
       {trashOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setTrashOpen(false)} />
-          <div className="relative w-full max-w-[520px] mx-4 max-h-[80vh] overflow-y-auto bg-[#141414] border border-white/[0.06] rounded-2xl shadow-2xl p-6">
+          <div className="relative w-full max-w-[520px] mx-4 max-h-[80vh] overflow-y-auto bg-surface border border-line rounded-2xl shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-black text-white flex items-center gap-2">
-                <Archive className="w-5 h-5 text-[#ccff00]" />垃圾箱
+              <h2 className="text-lg font-black text-content flex items-center gap-2">
+                <Archive className="w-5 h-5 text-brand" />垃圾箱
               </h2>
-              <button onClick={() => setTrashOpen(false)} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.1] transition-all">
+              <button onClick={() => setTrashOpen(false)} className="w-8 h-8 rounded-full bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-[11px] text-[#666] mb-4">
+            <p className="text-[11px] text-faint mb-4">
               {isAdmin ? "被删除的网红按删除时间排列,可恢复或彻底删除。" : "你删除的网红按删除时间排列,可恢复或彻底删除。"}
             </p>
             {(trashData || []).length === 0 ? (
-              <div className="text-center py-10 text-[#444] text-sm">垃圾箱为空</div>
+              <div className="text-center py-10 text-faint text-sm">垃圾箱为空</div>
             ) : (
               <div className="space-y-2">
                 {(trashData || []).map((item: any) => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#0a0a0a] border border-white/[0.04]">
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-base border border-line">
                     <img
                       src={item.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.handle}`}
                       alt={item.name}
-                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]"
+                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-line"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                      <p className="text-[10px] text-[#666]">
+                      <p className="text-sm font-bold text-content truncate">{item.name}</p>
+                      <p className="text-[10px] text-faint">
                         {platformLabels[item.platform] || item.platform} · 删除于 {item.deletedAt || "—"}
                       </p>
                     </div>
                     <button
                       onClick={() => restoreInf({ id: item.id })}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-[11px] font-medium hover:bg-[#ccff00]/20 transition-all"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-lime/10 text-brand text-[11px] font-medium hover:bg-lime/20 transition-all"
                     >
                       <RotateCcw className="w-3 h-3" />恢复
                     </button>

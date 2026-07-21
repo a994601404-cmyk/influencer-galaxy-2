@@ -52,31 +52,31 @@ export default function CountrySelect({ value, onChange, placeholder = "选择�
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30 flex items-center justify-between transition-colors hover:border-white/[0.1]"
+        className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30 flex items-center justify-between transition-colors hover:border-line"
       >
-        <span className={value ? "text-white" : "text-[#444]"}>{selectedLabel}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-[#666] transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className={value ? "text-content" : "text-faint"}>{selectedLabel}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-faint transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden" style={{ maxHeight: "320px" }}>
+        <div className="absolute z-50 w-full mt-1 bg-elevated border border-line rounded-xl shadow-2xl overflow-hidden" style={{ maxHeight: "320px" }}>
           {/* Search input */}
-          <div className="sticky top-0 bg-[#111] border-b border-white/[0.06] p-2">
+          <div className="sticky top-0 bg-elevated border-b border-line p-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#555]" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-faint" />
               <input
                 ref={inputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="搜索国家/地区..."
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+                className="w-full bg-base border border-line rounded-lg pl-8 pr-7 py-1.5 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
               />
               {search && (
                 <button
                   onClick={() => { setSearch(""); inputRef.current?.focus(); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#555] hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-faint hover:text-content"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -87,7 +87,7 @@ export default function CountrySelect({ value, onChange, placeholder = "选择�
           {/* Options list */}
           <div className="overflow-y-auto" style={{ maxHeight: "260px" }}>
             {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-[#666]">未找到匹配的国家/地区</div>
+              <div className="px-3 py-4 text-center text-xs text-faint">未找到匹配的国家/地区</div>
             ) : (
               filtered.map((c) => {
                 const optionValue = `${c.flag}-${c.code}-${c.name}`;
@@ -101,14 +101,14 @@ export default function CountrySelect({ value, onChange, placeholder = "选择�
                       setOpen(false);
                       setSearch("");
                     }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors hover:bg-white/[0.04] ${
-                      isSelected ? "bg-[#ccff00]/10 text-[#ccff00]" : "text-white"
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors hover:bg-hover ${
+                      isSelected ? "bg-lime/10 text-brand" : "text-content"
                     }`}
                   >
                     <span className="text-sm">{c.flag}</span>
-                    <span className="text-[#666] w-7 flex-shrink-0">{c.code}</span>
+                    <span className="text-faint w-7 flex-shrink-0">{c.code}</span>
                     <span className="truncate">{c.name}</span>
-                    {isSelected && <span className="ml-auto text-[#ccff00]">✓</span>}
+                    {isSelected && <span className="ml-auto text-brand">✓</span>}
                   </button>
                 );
               })

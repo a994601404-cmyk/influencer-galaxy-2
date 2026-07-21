@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/lib/theme";
 import { ErrorBoundary } from "./ErrorBoundary";
 import AuthModal from "./AuthModal";
 import NotificationBell from "./NotificationBell";
@@ -15,6 +16,8 @@ import {
   Shield,
   Settings as SettingsIcon,
   ShieldCheck,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
@@ -31,6 +34,7 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin, isLoading, logout } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Redirect unauthenticated users to landing page
@@ -48,23 +52,23 @@ export default function AppLayout() {
   // Show loading while checking auth status (prevents flash of content)
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#ccff00] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-base text-content">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.05]">
+      <header className="sticky top-0 z-50 bg-base/80 backdrop-blur-xl border-b border-line">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Left: Logo */}
             <div className="flex items-center gap-6">
               <Link to="/" className="flex items-center gap-2">
                 <img src="/logo-galaxy.png" alt="InfluencerGalaxy" className="w-7 h-7 object-contain" />
-                <span className="text-white font-bold text-sm tracking-tight">InfluencerGalaxy</span>
+                <span className="text-content font-bold text-sm tracking-tight">InfluencerGalaxy</span>
               </Link>
 
               {/* Desktop Nav */}
@@ -99,31 +103,38 @@ export default function AppLayout() {
 
             {/* Right: Auth */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sub hover:text-content hover:bg-hover transition-all"
+                title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
               {isAuthenticated && user ? (
                 <div className="flex items-center gap-2">
                   {isAdmin && (
-                    <span className="hidden sm:flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#ccff00]/10 text-[#ccff00] font-bold">
+                    <span className="hidden sm:flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-lime/10 text-brand font-bold">
                       <Shield className="w-3 h-3" />管理员
                     </span>
                   )}
                   <NotificationBell />
                   <div className="flex items-center gap-2 mr-1">
-                    <img src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"} alt="" className="w-7 h-7 rounded-full object-cover border border-white/[0.08]" />
-                    <span className="hidden sm:block text-xs text-[#888]">{user.name || "User"}</span>
+                    <img src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"} alt="" className="w-7 h-7 rounded-full object-cover border border-line" />
+                    <span className="hidden sm:block text-xs text-sub">{user.name || "User"}</span>
                   </div>
-                  <button onClick={logout} className="hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#666] hover:text-red-400 hover:bg-white/[0.03] transition-all">
+                  <button onClick={logout} className="hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-faint hover:text-red-400 hover:bg-hover transition-all">
                     <LogOut className="w-3.5 h-3.5" />退出
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <button onClick={openLogin} className="hidden md:block text-xs text-[#888] hover:text-white transition-colors px-3 py-1.5">登录</button>
+                  <button onClick={openLogin} className="hidden md:block text-xs text-sub hover:text-content transition-colors px-3 py-1.5">登录</button>
                   <button onClick={openRegister} className="btn-lime text-xs flex items-center gap-1">注册</button>
                 </div>
               )}
 
               {/* Mobile toggle */}
-              <button className="md:hidden p-2 text-[#666] hover:text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              <button className="md:hidden p-2 text-faint hover:text-content" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
@@ -132,24 +143,24 @@ export default function AppLayout() {
 
         {/* Mobile Nav */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/[0.05] bg-[#0a0a0a]/95 backdrop-blur-xl">
+          <div className="md:hidden border-t border-line bg-base/95 backdrop-blur-xl">
             <nav className="px-4 py-2 space-y-0.5">
               <Link to="/" onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/" ? "text-brand bg-lime/10 font-medium" : "text-faint hover:text-content hover:bg-hover"}`}>
                 <LayoutDashboard className="w-4 h-4" />工作台
               </Link>
               {isAdmin && (
                 <Link to="/review" onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/review" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/review" ? "text-brand bg-lime/10 font-medium" : "text-faint hover:text-content hover:bg-hover"}`}>
                   <ShieldCheck className="w-4 h-4" />审核
                 </Link>
               )}
               <Link to="/influencers" onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/influencers" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/influencers" ? "text-brand bg-lime/10 font-medium" : "text-faint hover:text-content hover:bg-hover"}`}>
                 <Users className="w-4 h-4" />网红
               </Link>
               <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/analytics" ? "text-[#ccff00] bg-[#ccff00]/10 font-medium" : "text-[#666] hover:text-white hover:bg-white/[0.03]"}`}>
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location.pathname === "/analytics" ? "text-brand bg-lime/10 font-medium" : "text-faint hover:text-content hover:bg-hover"}`}>
                 <BarChart3 className="w-4 h-4" />数据
               </Link>
               <Link
@@ -157,23 +168,23 @@ export default function AppLayout() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
                   location.pathname === "/settings"
-                    ? "text-[#ccff00] bg-[#ccff00]/10 font-medium"
-                    : "text-[#666] hover:text-white hover:bg-white/[0.03]"
+                    ? "text-brand bg-lime/10 font-medium"
+                    : "text-faint hover:text-content hover:bg-hover"
                 }`}
               >
                 <SettingsIcon className="w-4 h-4" />
                 设置
               </Link>
               {isAuthenticated ? (
-                <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-[#666] hover:text-red-400 w-full">
+                <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-faint hover:text-red-400 w-full">
                   <LogOut className="w-4 h-4" />退出
                 </button>
               ) : (
                 <>
-                  <button onClick={() => { openLogin(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-[#ccff00] w-full">
+                  <button onClick={() => { openLogin(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand w-full">
                     登录
                   </button>
-                  <button onClick={() => { openRegister(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-[#ccff00] w-full">
+                  <button onClick={() => { openRegister(); setMobileMenuOpen(false); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand w-full">
                     注册
                   </button>
                 </>

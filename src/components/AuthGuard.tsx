@@ -26,8 +26,8 @@ export default function AuthGuard({ children, fallback }: Props) {
   // Show nothing while checking auth (prevents flash of content)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#ccff00] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

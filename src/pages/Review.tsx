@@ -41,22 +41,22 @@ function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}
-          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]"
+          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-line"
         />
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-white truncate">{inf.name}</h3>
-          <p className="text-[11px] text-[#666] truncate">{inf.handle}</p>
+          <h3 className="text-sm font-bold text-content truncate">{inf.name}</h3>
+          <p className="text-[11px] text-faint truncate">{inf.handle}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888]">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub">
               {platformLabels[inf.platform] || inf.platform}
             </span>
             {inf.location && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888] flex items-center gap-0.5">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
                 <MapPin className="w-2.5 h-2.5" />{displayCountry(inf.location)}
               </span>
             )}
             {inf.niche && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[#888] flex items-center gap-0.5">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
                 <Hash className="w-2.5 h-2.5" />{getNicheLabel(inf.niche)}
               </span>
             )}
@@ -64,16 +64,16 @@ function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.04]">
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-line">
         <div className="flex-1">
-          <p className="text-[9px] text-[#666]">网红报价</p>
-          <p className="text-sm font-bold text-[#ccff00]">
+          <p className="text-[9px] text-faint">网红报价</p>
+          <p className="text-sm font-bold text-brand">
             {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : "—"}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-[9px] text-[#666]">审核报价</p>
-          <p className="text-sm font-bold text-[#06b6d4]">
+          <p className="text-[9px] text-faint">审核报价</p>
+          <p className="text-sm font-bold text-cy">
             {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : "—"}
           </p>
         </div>
@@ -82,11 +82,11 @@ function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
       {coopItems.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
           {coopItems.map((item) => (
-            <span key={item.platform} className="text-[9px] text-[#888]">
-              <span className="text-[#aaa]">{item.platform}</span>
-              <span className="text-[#555] mx-0.5">·</span>
+            <span key={item.platform} className="text-[9px] text-sub">
+              <span className="text-sub">{item.platform}</span>
+              <span className="text-faint mx-0.5">·</span>
               {item.types.map((t) => (
-                <span key={t} className="text-[#ccff00]/60 mr-1">{t}</span>
+                <span key={t} className="text-brand/60 mr-1">{t}</span>
               ))}
             </span>
           ))}
@@ -94,7 +94,7 @@ function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
       )}
 
       {inf.bio && (
-        <p className="text-[10px] text-[#666] mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
+        <p className="text-[10px] text-faint mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
       )}
     </div>
   );
@@ -200,14 +200,14 @@ export default function Review() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-content flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-purple-400" />审核中心
         </h1>
-        <p className="text-sm text-[#888] mt-1">审核网红卡片各项流程</p>
+        <p className="text-sm text-sub mt-1">审核网红卡片各项流程</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-white/[0.06] pb-3">
+      <div className="flex gap-2 border-b border-line pb-3">
         {tabConfig.map((tab) => {
           const Icon = tab.icon;
           const isActive = reviewTab === tab.key;
@@ -219,12 +219,12 @@ export default function Review() {
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "bg-purple-500/20 text-purple-400 border border-purple-500/20"
-                  : "text-[#888] hover:text-white hover:bg-white/[0.04] border border-transparent"
+                  : "text-sub hover:text-content hover:bg-hover border border-transparent"
               }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-purple-500/20 text-purple-400" : "bg-white/[0.04] text-[#666]"}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-purple-500/20 text-purple-400" : "bg-hover text-faint"}`}>
                 {count}
               </span>
             </button>
@@ -232,7 +232,7 @@ export default function Review() {
         })}
       </div>
 
-      <p className="text-xs text-[#666]">
+      <p className="text-xs text-faint">
         {tabConfig.find(t => t.key === reviewTab)?.desc}
       </p>
 
@@ -252,7 +252,7 @@ export default function Review() {
 
       {filteredForReview.length === 0 && (
         <div className="flex items-center justify-center h-[30vh]">
-          <p className="text-[#666] text-sm">暂无待审核项目</p>
+          <p className="text-faint text-sm">暂无待审核项目</p>
         </div>
       )}
 

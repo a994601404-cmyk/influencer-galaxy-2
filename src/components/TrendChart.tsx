@@ -14,7 +14,7 @@ interface Props {
 export default function TrendChart({ data, color, label, unit = "", height = 160 }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-6 text-[#555] text-xs">
+      <div className="text-center py-6 text-faint text-xs">
         <p>暂无数据</p>
       </div>
     );
@@ -43,7 +43,7 @@ export default function TrendChart({ data, color, label, unit = "", height = 160
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-[#888]">{label}</span>
+        <span className="text-xs font-semibold text-sub">{label}</span>
         <span className="text-xs font-black" style={{ color }}>
           {lastPoint.value >= 1000 ? (lastPoint.value / 1000).toFixed(1) + "K" : lastPoint.value.toFixed(2)}
           {unit}

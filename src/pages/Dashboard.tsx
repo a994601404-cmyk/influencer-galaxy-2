@@ -78,7 +78,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Hero Section - Green Gradient CTA */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a2e00] via-[#0f1a00] to-[#0a0a0a] border border-[#ccff00]/20">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-lime/10 via-lime/5 to-base border border-brand/20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(204,255,0,0.08),transparent_60%)]" />
         <div className="relative px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -86,13 +86,13 @@ export default function Dashboard() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="badge-new">AI POWERED</span>
                 {isAuthenticated && user?.role === "admin" && (
-                  <span className="badge-new bg-[#ccff00] text-black">ADMIN</span>
+                  <span className="badge-new bg-lime text-black">ADMIN</span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-1">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-content mb-1">
                 {isAuthenticated ? `欢迎, ${user?.name || "用户"}` : "PULSEBOOST"}
               </h1>
-              <p className="text-sm text-[#8a8a8a]">
+              <p className="text-sm text-sub">
                 {isAuthenticated ? "继续您的网红营销推广工作" : "AI 驱动的网红营销推广工作台"}
               </p>
             </div>
@@ -109,8 +109,8 @@ export default function Dashboard() {
 
       {/* KPI Cards - Dense Grid: Post Stats */}
       <div>
-        <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-[#ccff00]" />发布数据概览
+        <h2 className="text-sm font-bold text-content mb-3 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-brand" />发布数据概览
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
@@ -126,8 +126,8 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-3">
                   <Icon className="w-4 h-4" style={{ color: kpi.color }} />
                 </div>
-                <p className="text-xl font-black text-white tracking-tight">{kpi.value}</p>
-                <p className="text-[11px] text-[#666]">{kpi.title}</p>
+                <p className="text-xl font-black text-content tracking-tight">{kpi.value}</p>
+                <p className="text-[11px] text-faint">{kpi.title}</p>
               </div>
             );
           })}
@@ -151,15 +151,15 @@ export default function Dashboard() {
               { label: "系统设置", desc: "配置 API 等", icon: Settings, color: "#ccff00", to: "/settings" },
             ].map((item) => (
               <Link key={item.label} to={item.to}>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-all group cursor-pointer border border-transparent hover:border-white/[0.06]">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-hover hover:bg-hover transition-all group cursor-pointer border border-transparent hover:border-line">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.color + "15" }}>
                     <item.icon className="w-4 h-4" style={{ color: item.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">{item.label}</p>
-                    <p className="text-[10px] text-[#666]">{item.desc}</p>
+                    <p className="text-xs font-semibold text-content">{item.label}</p>
+                    <p className="text-[10px] text-faint">{item.desc}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#444] group-hover:text-white transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-faint group-hover:text-content transition-colors" />
                 </div>
               </Link>
             ))}
@@ -174,19 +174,19 @@ export default function Dashboard() {
           <h2 className="section-title mb-4">推广计划</h2>
           <div className="space-y-2">
             {campaigns.map((c) => (
-              <div key={c.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+              <div key={c.id} className="flex items-center justify-between p-3 rounded-xl bg-hover hover:bg-hover transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`w-1.5 h-1.5 rounded-full ${
-                    c.status === "active" ? "bg-[#ccff00]" : c.status === "completed" ? "bg-[#666]" : "bg-[#f59e0b]"
+                    c.status === "active" ? "bg-lime" : c.status === "completed" ? "bg-faint" : "bg-[#f59e0b]"
                   }`} />
                   <div>
-                    <p className="text-xs font-medium text-white">{c.name}</p>
-                    <p className="text-[10px] text-[#666]">预算 ${formatNumber(c.budget)} · 曝光 {formatNumber(c.impressions)}</p>
+                    <p className="text-xs font-medium text-content">{c.name}</p>
+                    <p className="text-[10px] text-faint">预算 ${formatNumber(c.budget)} · 曝光 {formatNumber(c.impressions)}</p>
                   </div>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                  c.status === "active" ? "bg-[#ccff00]/15 text-[#ccff00]" :
-                  c.status === "completed" ? "bg-white/[0.04] text-[#888]" :
+                  c.status === "active" ? "bg-lime/15 text-brand" :
+                  c.status === "completed" ? "bg-hover text-sub" :
                   "bg-[#f59e0b]/15 text-[#f59e0b]"
                 }`}>
                   {c.status === "active" ? "进行中" : c.status === "completed" ? "已完成" : "草稿"}
@@ -200,19 +200,19 @@ export default function Dashboard() {
         <div className="card-surface p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="section-title">头部网红</h2>
-            <Link to="/influencers" className="text-xs text-[#ccff00] hover:underline">查看全部</Link>
+            <Link to="/influencers" className="text-xs text-brand hover:underline">查看全部</Link>
           </div>
           <div className="space-y-2">
             {[...influencers].sort((a, b) => b.followers - a.followers).slice(0, 5).map((inf) => (
-              <Link key={inf.id} to="/influencers" className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+              <Link key={inf.id} to="/influencers" className="flex items-center gap-3 p-2.5 rounded-xl bg-hover hover:bg-hover transition-colors group">
                 <img src={inf.avatar} alt={inf.name} className="w-9 h-9 rounded-xl object-cover" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white truncate">{inf.name}</p>
-                  <p className="text-[10px] text-[#666]">{inf.handle} · {formatNumber(inf.followers)}</p>
+                  <p className="text-xs font-medium text-content truncate">{inf.name}</p>
+                  <p className="text-[10px] text-faint">{inf.handle} · {formatNumber(inf.followers)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold text-[#ccff00]">{inf.engagementRate.toFixed(2)}%</p>
-                  <p className="text-[10px] text-[#666]">互动率</p>
+                  <p className="text-xs font-bold text-brand">{inf.engagementRate.toFixed(2)}%</p>
+                  <p className="text-[10px] text-faint">互动率</p>
                 </div>
               </Link>
             ))}
@@ -232,8 +232,8 @@ export default function Dashboard() {
               <item.icon className="w-5 h-5" style={{ color: item.color }} />
             </div>
             <div>
-              <p className="text-lg font-black text-white">{item.value}</p>
-              <p className="text-[11px] text-[#666]">{item.label}</p>
+              <p className="text-lg font-black text-content">{item.value}</p>
+              <p className="text-[11px] text-faint">{item.label}</p>
             </div>
           </div>
         ))}

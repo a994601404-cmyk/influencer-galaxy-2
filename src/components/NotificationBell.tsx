@@ -25,8 +25,8 @@ import {
 } from "lucide-react";
 
 const typeConfig: Record<string, { icon: typeof Bell; color: string }> = {
-  influencer_created: { icon: UserPlus, color: "text-[#ccff00]" },
-  negotiation_created: { icon: Handshake, color: "text-[#06b6d4]" },
+  influencer_created: { icon: UserPlus, color: "text-brand" },
+  negotiation_created: { icon: Handshake, color: "text-cy" },
   script_created: { icon: FileText, color: "text-amber-400" },
   video_created: { icon: Video, color: "text-purple-400" },
   negotiation_reviewed: { icon: ClipboardCheck, color: "text-green-400" },
@@ -133,11 +133,11 @@ export default function NotificationBell() {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed top-4 right-4 z-[100] max-w-xs bg-[#1a1a1a] border border-white/[0.06] rounded-xl shadow-2xl p-4 animate-in slide-in-from-top-2 fade-in duration-300 cursor-pointer"
+          className="fixed top-4 right-4 z-[100] max-w-xs bg-elevated border border-line rounded-xl shadow-2xl p-4 animate-in slide-in-from-top-2 fade-in duration-300 cursor-pointer"
           onClick={() => { setToast(null); }}
         >
-          <p className="text-xs font-bold text-[#ccff00] mb-1">{toast.title}</p>
-          <p className="text-[11px] text-[#aaa] line-clamp-2">{toast.message}</p>
+          <p className="text-xs font-bold text-brand mb-1">{toast.title}</p>
+          <p className="text-[11px] text-sub line-clamp-2">{toast.message}</p>
         </div>
       )}
 
@@ -145,13 +145,13 @@ export default function NotificationBell() {
         {/* Bell icon */}
         <button
           onClick={() => setOpen(!open)}
-          className="relative w-9 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+          className="relative w-9 h-9 rounded-xl bg-hover hover:bg-hover flex items-center justify-center transition-colors"
         >
-          <Bell className="w-4 h-4 text-[#888]" />
+          <Bell className="w-4 h-4 text-sub" />
           {/* Connection status dot */}
-          <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-[#1a1a1a] ${connected ? "bg-green-500" : "bg-[#555]"}`} />
+          <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-elevated ${connected ? "bg-green-500" : "bg-faint"}`} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-content text-[10px] font-bold flex items-center justify-center">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -159,17 +159,17 @@ export default function NotificationBell() {
 
         {/* Dropdown */}
         {open && (
-          <div className="absolute right-0 top-11 w-[380px] max-h-[500px] bg-[#1a1a1a] border border-white/[0.06] rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden">
+          <div className="absolute right-0 top-11 w-[380px] max-h-[500px] bg-elevated border border-line rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">通知</h3>
+                <h3 className="text-sm font-bold text-content">通知</h3>
                 {connected ? (
                   <span className="flex items-center gap-0.5 text-[9px] text-green-400">
                     <Wifi className="w-2.5 h-2.5" />{mode === "sse" ? "实时" : "轮询"}
                   </span>
                 ) : (
-                  <span className="flex items-center gap-0.5 text-[9px] text-[#555]">
+                  <span className="flex items-center gap-0.5 text-[9px] text-faint">
                     <WifiOff className="w-2.5 h-2.5" />离线
                   </span>
                 )}
@@ -179,8 +179,8 @@ export default function NotificationBell() {
                   onClick={() => setShowUnreadOnly(!showUnreadOnly)}
                   className={`text-[10px] px-2 py-1 rounded-md transition-colors ${
                     showUnreadOnly
-                      ? "bg-[#ccff00]/10 text-[#ccff00]"
-                      : "bg-white/[0.04] text-[#666] hover:text-white"
+                      ? "bg-lime/10 text-brand"
+                      : "bg-hover text-faint hover:text-content"
                   }`}
                 >
                   {showUnreadOnly ? "全部" : "未读"}
@@ -188,7 +188,7 @@ export default function NotificationBell() {
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllRead.mutate()}
-                    className="text-[10px] px-2 py-1 rounded-md bg-white/[0.04] text-[#666] hover:text-white flex items-center gap-1 transition-colors"
+                    className="text-[10px] px-2 py-1 rounded-md bg-hover text-faint hover:text-content flex items-center gap-1 transition-colors"
                   >
                     <CheckCheck className="w-3 h-3" />
                     全部已读
@@ -201,15 +201,15 @@ export default function NotificationBell() {
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <AlertCircle className="w-8 h-8 text-[#333] mb-2" />
-                  <p className="text-xs text-[#555]">
+                  <AlertCircle className="w-8 h-8 text-faint mb-2" />
+                  <p className="text-xs text-faint">
                     {showUnreadOnly ? "没有未读通知" : "暂无通知"}
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/[0.03]">
+                <div className="divide-y divide-line">
                   {notifications.map((n: any) => {
-                    const cfg = typeConfig[n.type] || { icon: Bell, color: "text-[#888]" };
+                    const cfg = typeConfig[n.type] || { icon: Bell, color: "text-sub" };
                     const Icon = cfg.icon;
                     const isClickable = n.relatedId && n.relatedType === "influencer";
                     return (
@@ -218,7 +218,7 @@ export default function NotificationBell() {
                         onClick={() => handleNotificationClick(n)}
                         className={`flex items-start gap-3 px-4 py-3 transition-colors ${
                           n.isRead ? "opacity-50" : ""
-                        } ${isClickable ? "cursor-pointer hover:bg-white/[0.03]" : "cursor-default"}`}
+                        } ${isClickable ? "cursor-pointer hover:bg-hover" : "cursor-default"}`}
                         title={isClickable ? "点击查看详情" : ""}
                       >
                         <div className={`mt-0.5 ${cfg.color}`}>
@@ -226,16 +226,16 @@ export default function NotificationBell() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <p className="text-xs font-bold text-white truncate">{n.title}</p>
+                            <p className="text-xs font-bold text-content truncate">{n.title}</p>
                             {!n.isRead && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] shrink-0" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-lime shrink-0" />
                             )}
                           </div>
-                          <p className="text-[11px] text-[#888] line-clamp-2 leading-relaxed">{n.message}</p>
+                          <p className="text-[11px] text-sub line-clamp-2 leading-relaxed">{n.message}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[9px] text-[#555]">{n.createdAt}</p>
+                            <p className="text-[9px] text-faint">{n.createdAt}</p>
                             {isClickable && (
-                              <span className="text-[9px] text-[#06b6d4]">点击查看</span>
+                              <span className="text-[9px] text-cy">点击查看</span>
                             )}
                           </div>
                         </div>
@@ -248,8 +248,8 @@ export default function NotificationBell() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-2 border-t border-white/[0.06] text-center">
-                <p className="text-[9px] text-[#555]">
+              <div className="px-4 py-2 border-t border-line text-center">
+                <p className="text-[9px] text-faint">
                   {showUnreadOnly ? `共 ${unreadCount} 条未读` : `共 ${notifications.length} 条通知`}
                 </p>
               </div>

@@ -46,33 +46,33 @@ export default function LandingPage() {
   useEffect(() => { if (isAuthenticated) navigate("/", { replace: true }); }, [isAuthenticated, navigate]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] overflow-hidden select-none">
+    <div className="relative min-h-screen bg-base overflow-hidden select-none">
       <GalaxyScene />
 
       {/* Content below galaxy */}
       <div className="absolute inset-x-0 z-20 flex flex-col items-center pointer-events-none" style={{ top: "60%" }}>
         <div className="flex flex-col items-center opacity-0 animate-fade-in-up" style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-white mb-1.5">
-            Influencer<span className="text-[#ccff00]">Galaxy</span>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-content mb-1.5">
+            Influencer<span className="text-brand">Galaxy</span>
           </h1>
-          <p className="text-xs text-[#777] text-center max-w-sm mb-4 px-4 leading-relaxed tracking-wide">
+          <p className="text-xs text-sub text-center max-w-sm mb-4 px-4 leading-relaxed tracking-wide">
             InfluencerGalaxy为你简化网红营销的复杂流程
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2.5 pointer-events-auto opacity-0 animate-fade-in-up" style={{ animationDelay: "0.8s", animationFillMode: "forwards" }}>
           <button onClick={() => { setAuthMode("register"); setAuthOpen(true); }}
-            className="px-6 py-2.5 rounded-full bg-[#ccff00] text-black text-sm font-bold hover:bg-[#d4ff33] transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] tracking-tight">
+            className="px-6 py-2.5 rounded-full bg-lime text-black text-sm font-bold hover:bg-lime transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] tracking-tight">
             免费开始
           </button>
           <button onClick={() => { setAuthMode("login"); setAuthOpen(true); }}
-            className="px-6 py-2.5 rounded-full border border-white/[0.1] text-[#777] text-sm font-medium hover:text-white hover:border-[#ccff00]/30 transition-all tracking-tight">
+            className="px-6 py-2.5 rounded-full border border-line text-sub text-sm font-medium hover:text-content hover:border-brand/30 transition-all tracking-tight">
             登录
           </button>
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-5 py-3 text-[10px] text-[#444] uppercase tracking-widest">
-        <span>Instagram</span><span className="text-[#ccff00]">·</span><span>TikTok</span><span className="text-[#ccff00]">·</span><span>小红书</span><span className="text-[#ccff00]">·</span><span>YouTube</span>
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-5 py-3 text-[10px] text-faint uppercase tracking-widest">
+        <span>Instagram</span><span className="text-brand">·</span><span>TikTok</span><span className="text-brand">·</span><span>小红书</span><span className="text-brand">·</span><span>YouTube</span>
       </div>
 
       <AuthModal
@@ -490,19 +490,19 @@ function GalaxyScene() {
       <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
         {cards.map((c) => (
           <div key={c.id} className="absolute" style={{ left: c.x, top: c.y, transform: `translate(-50%,-50%) scale(${c.scale})`, opacity: c.opacity }}>
-            <div className="bg-[#0a0a0a]/70 backdrop-blur-sm border border-[#ccff00]/10 rounded-xl px-3.5 py-3 w-[185px]" style={{ boxShadow: "0 0 20px rgba(204,255,0,0.03), 0 4px 16px rgba(0,0,0,0.5)" }}>
+            <div className="bg-base/70 backdrop-blur-sm border border-brand/10 rounded-xl px-3.5 py-3 w-[185px]" style={{ boxShadow: "0 0 20px rgba(204,255,0,0.03), 0 4px 16px rgba(0,0,0,0.5)" }}>
               <div className="flex items-center gap-2.5 mb-2">
-                <img src={c.kol.avatar} alt={c.kol.name} className="w-8 h-8 rounded-full object-cover border border-[#ccff00]/15" />
+                <img src={c.kol.avatar} alt={c.kol.name} className="w-8 h-8 rounded-full object-cover border border-brand/15" />
                 <div>
-                  <p className="text-[11px] font-bold text-white leading-tight">{c.kol.name}</p>
-                  <p className="text-[9px] text-[#666]">{c.kol.handle}</p>
+                  <p className="text-[11px] font-bold text-content leading-tight">{c.kol.name}</p>
+                  <p className="text-[9px] text-faint">{c.kol.handle}</p>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-1">
-                <div className="text-center"><Users className="w-3 h-3 mx-auto text-[#ccff00]/60 mb-0.5" /><p className="text-[9px] font-bold text-[#ccff00]">{c.kol.followers}</p></div>
-                <div className="text-center"><Eye className="w-3 h-3 mx-auto text-[#06b6d4]/60 mb-0.5" /><p className="text-[9px] font-bold text-white">{c.kol.exposures}</p></div>
-                <div className="text-center"><Heart className="w-3 h-3 mx-auto text-[#ef4444]/60 mb-0.5" /><p className="text-[9px] font-bold text-white">{c.kol.likes}</p></div>
-                <div className="text-center"><Bookmark className="w-3 h-3 mx-auto text-[#f59e0b]/60 mb-0.5" /><p className="text-[9px] font-bold text-white">{c.kol.bookmarks}</p></div>
+                <div className="text-center"><Users className="w-3 h-3 mx-auto text-brand/60 mb-0.5" /><p className="text-[9px] font-bold text-brand">{c.kol.followers}</p></div>
+                <div className="text-center"><Eye className="w-3 h-3 mx-auto text-cy/60 mb-0.5" /><p className="text-[9px] font-bold text-content">{c.kol.exposures}</p></div>
+                <div className="text-center"><Heart className="w-3 h-3 mx-auto text-[#ef4444]/60 mb-0.5" /><p className="text-[9px] font-bold text-content">{c.kol.likes}</p></div>
+                <div className="text-center"><Bookmark className="w-3 h-3 mx-auto text-[#f59e0b]/60 mb-0.5" /><p className="text-[9px] font-bold text-content">{c.kol.bookmarks}</p></div>
               </div>
             </div>
           </div>

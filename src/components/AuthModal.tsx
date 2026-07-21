@@ -128,25 +128,25 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-[420px] mx-4 bg-[#141414] border border-white/[0.06] rounded-3xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-[420px] mx-4 bg-surface border border-line rounded-3xl shadow-2xl overflow-hidden">
         {/* Close button */}
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.1] transition-all">
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all">
           <X className="w-4 h-4" />
         </button>
 
         <div className="p-8">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-[#ccff00] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-lime flex items-center justify-center">
               <Zap className="w-6 h-6 text-black" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-black text-white text-center tracking-tight">
+          <h2 className="text-xl font-black text-content text-center tracking-tight">
             {titles[mode]}
           </h2>
-          <p className="text-xs text-[#666] text-center mt-1 mb-6">
+          <p className="text-xs text-faint text-center mt-1 mb-6">
             {subtitles[mode]}
           </p>
 
@@ -159,7 +159,7 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
 
           {/* Notice */}
           {notice && (
-            <div className="mb-4 p-3 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 text-[#ccff00] text-xs text-center">
+            <div className="mb-4 p-3 rounded-xl bg-lime/10 border border-brand/20 text-brand text-xs text-center">
               {notice}
             </div>
           )}
@@ -169,59 +169,59 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
             {mode === "register" && (
               <>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="姓名"
-                    className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+                    className="w-full bg-base border border-line rounded-xl pl-10 pr-4 py-3 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
                   />
                 </div>
 
                 {/* Invitation Code */}
                 <div className="relative">
-                  <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ccff00]" />
+                  <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand" />
                   <input
                     type="text"
                     value={invitationCode}
                     onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
                     placeholder="邀请码 (6位)"
                     maxLength={6}
-                    className="w-full bg-[#0a0a0a] border border-[#ccff00]/20 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#ccff00]/40 focus:outline-none focus:border-[#ccff00]/50 transition-colors font-mono tracking-widest"
+                    className="w-full bg-base border border-brand/20 rounded-xl pl-10 pr-4 py-3 text-sm text-content placeholder:text-brand/40 focus:outline-none focus:border-brand/50 transition-colors font-mono tracking-widest"
                   />
                 </div>
-                <p className="text-[10px] text-[#666] px-1">
-                  没有邀请码？<span className="text-[#ccff00]">请联系管理员获取邀请码</span>
+                <p className="text-[10px] text-faint px-1">
+                  没有邀请码？<span className="text-brand">请联系管理员获取邀请码</span>
                 </p>
               </>
             )}
 
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="邮箱"
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+                className="w-full bg-base border border-line rounded-xl pl-10 pr-4 py-3 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
               />
             </div>
 
             {mode !== "forgot" && (
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === "register" ? "密码（至少 8 位）" : "密码"}
-                  className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+                  className="w-full bg-base border border-line rounded-xl pl-10 pr-10 py-3 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-content"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -234,7 +234,7 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
                 <button
                   type="button"
                   onClick={() => setUseMasterKey(!useMasterKey)}
-                  className="flex items-center gap-2 text-[11px] text-[#666] hover:text-[#ccff00] transition-colors px-1"
+                  className="flex items-center gap-2 text-[11px] text-faint hover:text-brand transition-colors px-1"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   {useMasterKey ? "使用管理员协助重置" : "我有恢复密钥（管理员）"}
@@ -243,28 +243,28 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
                 {useMasterKey && (
                   <>
                     <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ccff00]" />
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand" />
                       <input
                         type="text"
                         value={masterKey}
                         onChange={(e) => setMasterKey(e.target.value)}
                         placeholder="恢复密钥（由站点所有者保管）"
-                        className="w-full bg-[#0a0a0a] border border-[#ccff00]/20 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/50 transition-colors font-mono"
+                        className="w-full bg-base border border-brand/20 rounded-xl pl-10 pr-4 py-3 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/50 transition-colors font-mono"
                       />
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
                       <input
                         type={showPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="新密码（至少 8 位）"
-                        className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#ccff00]/30 transition-colors"
+                        className="w-full bg-base border border-line rounded-xl pl-10 pr-10 py-3 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-content"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -302,14 +302,14 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
               <>
                 <button
                   onClick={() => switchMode("forgot")}
-                  className="text-[#666] hover:text-[#ccff00] transition-colors"
+                  className="text-faint hover:text-brand transition-colors"
                 >
                   忘记密码？
                 </button>
-                <span className="text-[#333]">·</span>
+                <span className="text-faint">·</span>
                 <button
                   onClick={() => switchMode("register")}
-                  className="text-[#666] hover:text-[#ccff00] transition-colors"
+                  className="text-faint hover:text-brand transition-colors"
                 >
                   还没有账号？注册
                 </button>
@@ -318,7 +318,7 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
             {mode === "register" && (
               <button
                 onClick={() => switchMode("login")}
-                className="text-[#666] hover:text-[#ccff00] transition-colors"
+                className="text-faint hover:text-brand transition-colors"
               >
                 已有账号？登录
               </button>
@@ -326,7 +326,7 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
             {mode === "forgot" && (
               <button
                 onClick={() => switchMode("login")}
-                className="flex items-center gap-1 text-[#666] hover:text-[#ccff00] transition-colors"
+                className="flex items-center gap-1 text-faint hover:text-brand transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 返回登录
@@ -335,7 +335,7 @@ export default function AuthModal({ open, onClose, onSuccess, defaultMode = "log
           </div>
 
           {/* Terms */}
-          <p className="text-[9px] text-[#444] text-center mt-4 leading-relaxed">
+          <p className="text-[9px] text-faint text-center mt-4 leading-relaxed">
             继续使用即表示您同意我们的服务条款和隐私政策
           </p>
         </div>

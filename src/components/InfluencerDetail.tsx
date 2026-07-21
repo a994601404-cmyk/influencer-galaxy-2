@@ -426,14 +426,14 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl bg-[#141414] border border-white/[0.06] text-white max-h-[85vh] overflow-y-auto scrollbar-thin rounded-2xl">
+      <DialogContent className="max-w-3xl bg-surface border border-line text-content max-h-[85vh] overflow-y-auto scrollbar-thin rounded-2xl">
         <DialogHeader><DialogTitle className="sr-only">{inf.name}</DialogTitle></DialogHeader>
 
         {/* Header */}
         <div className="flex items-start gap-4 -mt-2">
           <div className="relative group/avatar flex-shrink-0">
             <img src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`} alt={inf.name}
-              className="w-16 h-16 rounded-2xl object-cover border border-white/[0.06]" />
+              className="w-16 h-16 rounded-2xl object-cover border border-line" />
             {canEdit && (
               <>
                 <label
@@ -441,7 +441,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                   className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 cursor-pointer transition-opacity"
                   title="更换头像"
                 >
-                  <Pencil className="w-4 h-4 text-white" />
+                  <Pencil className="w-4 h-4 text-content" />
                 </label>
                 <input
                   id="avatar-upload"
@@ -455,21 +455,21 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-black text-white tracking-tight">{inf.name}</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-[#888] font-medium">{platformLabels[inf.platform]}</span>
+              <h2 className="text-xl font-black text-content tracking-tight">{inf.name}</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-hover text-sub font-medium">{platformLabels[inf.platform]}</span>
               {inf.coopStatus === "not-cooperating" && (
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 font-bold">不合作</span>
               )}
             </div>
-            <p className="text-sm text-[#666]">{inf.handle}</p>
-            <p className="text-xs text-[#666] mt-1 flex items-center gap-1">
+            <p className="text-sm text-faint">{inf.handle}</p>
+            <p className="text-xs text-faint mt-1 flex items-center gap-1">
               {displayCountry(inf.location) || inf.location}<span className="mx-1">·</span>{getNicheLabel(inf.niche)}
             </p>
           </div>
           {canEdit && (
             <button
               onClick={() => setEditInfoOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#888] hover:text-[#ccff00] hover:border-[#ccff00]/30 text-xs transition-all flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-hover border border-line text-sub hover:text-brand hover:border-brand/30 text-xs transition-all flex-shrink-0"
             >
               <Pencil className="w-3 h-3" />编辑资料
             </button>
@@ -477,29 +477,29 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
         </div>
 
         {/* Cooperation Types */}
-        <div className="p-4 rounded-xl bg-white/[0.02]">
+        <div className="p-4 rounded-xl bg-hover">
           {!editingCoopTypes ? (
             <div className="relative">
               {inf.coopTypes ? (
                 <div className="space-y-1.5">
                   {parseCoopTypes(inf.coopTypes).map((item) => (
                     <div key={item.platform} className="flex items-center gap-2">
-                      <span className="text-[10px] font-medium text-white w-16">{item.platform}</span>
+                      <span className="text-[10px] font-medium text-content w-16">{item.platform}</span>
                       <div className="flex flex-wrap gap-1">
                         {item.types.map((t) => (
-                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00]">{t}</span>
+                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-lime/10 text-brand">{t}</span>
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-[#555] text-center">未设置合作方式</p>
+                <p className="text-[10px] text-faint text-center">未设置合作方式</p>
               )}
               {canEdit && (
                 <button
                   onClick={() => { setTempCoopTypes(parseCoopTypes(inf.coopTypes)); setEditingCoopTypes(true); }}
-                  className="absolute top-0 right-0 text-[9px] text-[#ccff00]/60 hover:text-[#ccff00] px-1.5 py-0.5 rounded hover:bg-[#ccff00]/10 transition-all"
+                  className="absolute top-0 right-0 text-[9px] text-brand/60 hover:text-brand px-1.5 py-0.5 rounded hover:bg-lime/10 transition-all"
                 >
                   {inf.coopTypes ? "编辑" : "添加"}
                 </button>
@@ -508,11 +508,11 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-medium text-white">编辑合作方式</span>
+                <span className="text-[11px] font-medium text-content">编辑合作方式</span>
               </div>
               {Object.entries(COOP_TYPE_OPTIONS).map(([platform, types]) => (
-                <div key={platform} className="p-2 rounded-lg bg-white/[0.02]">
-                  <p className="text-[10px] font-medium text-[#888] mb-1.5">{platform}</p>
+                <div key={platform} className="p-2 rounded-lg bg-hover">
+                  <p className="text-[10px] font-medium text-sub mb-1.5">{platform}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {types.map((type) => {
                       const selected = isDetailCoopSelected(platform, type);
@@ -520,8 +520,8 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                         <button key={type} onClick={() => toggleDetailCoopType(platform, type)}
                           className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all border ${
                             selected
-                              ? "bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30"
-                              : "bg-white/[0.03] text-[#888] border-white/[0.06] hover:bg-white/[0.06]"
+                              ? "bg-lime/15 text-brand border-brand/30"
+                              : "bg-hover text-sub border-line hover:bg-hover"
                           }`}>
                           {selected && "✓ "}{type}
                         </button>
@@ -532,18 +532,18 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
               ))}
               <div className="flex items-center gap-2 pt-1">
                 <button onClick={handleSaveCoopTypes} disabled={updateInfluencer.isPending}
-                  className="px-3 py-1.5 rounded-lg bg-[#ccff00] text-black text-[10px] font-bold disabled:opacity-50">
+                  className="px-3 py-1.5 rounded-lg bg-lime text-black text-[10px] font-bold disabled:opacity-50">
                   {updateInfluencer.isPending ? "保存中..." : "保存"}
                 </button>
                 <button onClick={() => { setEditingCoopTypes(false); setTempCoopTypes([]); }}
-                  className="px-3 py-1.5 rounded-lg bg-white/[0.04] text-[#666] text-[10px]">取消</button>
+                  className="px-3 py-1.5 rounded-lg bg-hover text-faint text-[10px]">取消</button>
               </div>
             </div>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02]">
+        <div className="flex gap-1 p-1 rounded-xl bg-hover">
           <TabButton active={activeTab === "price"} onClick={() => handleTabChange("price")} icon={Handshake} label="谈价记录" count={negotiations.length} />
           <TabButton active={activeTab === "script"} onClick={() => handleTabChange("script")} icon={FileText} label="脚本确认" count={scripts.length} badge={lastScript?.status === "pending"} />
           <TabButton active={activeTab === "video"} onClick={() => handleTabChange("video")} icon={Video} label="视频初稿" count={videos.length} badge={lastVideo?.status === "pending"} />
@@ -555,31 +555,31 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           <div className="space-y-3">
             {canEdit && (
               <button onClick={() => setShowNegForm(!showNegForm)}
-                className="w-full py-2.5 rounded-xl border border-dashed border-[#ccff00]/30 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/5 transition-all flex items-center justify-center gap-1.5">
+                className="w-full py-2.5 rounded-xl border border-dashed border-brand/30 text-brand text-xs font-medium hover:bg-lime/5 transition-all flex items-center justify-center gap-1.5">
                 {showNegForm ? <><ChevronDown className="w-3.5 h-3.5" />取消</> : <><Plus className="w-3.5 h-3.5" />记录新一轮谈价</>}
               </button>
             )}
             {showNegForm && (
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-3">
-                <h4 className="text-xs font-bold text-white">新增谈价记录</h4>
+              <div className="p-4 rounded-xl bg-hover border border-brand/10 space-y-3">
+                <h4 className="text-xs font-bold text-content">新增谈价记录</h4>
                 <div className={`grid gap-3 ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">网红报价 ($)</label>
+                    <label className="text-[10px] text-faint mb-1 block">网红报价 ($)</label>
                     <input type="number" value={negUserPrice} onChange={(e) => setNegUserPrice(e.target.value)} placeholder="网红提出的价格"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                   {isAdmin && (
                     <div>
-                      <label className="text-[10px] text-[#666] mb-1 block">审核报价 ($) <span className="text-[#ccff00]">· 管理员</span></label>
+                      <label className="text-[10px] text-faint mb-1 block">审核报价 ($) <span className="text-brand">· 管理员</span></label>
                       <input type="number" value={negAdminPrice} onChange={(e) => setNegAdminPrice(e.target.value)} placeholder="审核后的价格"
-                        className="w-full bg-[#0a0a0a] border border-[#ccff00]/20 rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/40" />
+                        className="w-full bg-base border border-brand/20 rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/40" />
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">备注</label>
+                  <label className="text-[10px] text-faint mb-1 block">备注</label>
                   <textarea value={negNotes} onChange={(e) => setNegNotes(e.target.value)} placeholder="谈价过程中的备注..."
-                    rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                    rows={2} className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                 </div>
                 <button onClick={handleAddNegotiation}
                   className="w-full btn-lime text-xs flex items-center justify-center gap-1.5 py-2">
@@ -589,18 +589,18 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
             )}
             {negotiations.length === 0 ? (
               <div className="text-center py-8">
-                <Handshake className="w-8 h-8 text-[#444] mx-auto mb-2" />
-                <p className="text-xs text-[#666]">暂无谈价记录</p>
-                <p className="text-[10px] text-[#555] mt-1">{canEdit ? "点击上方按钮记录第一次谈价" : "只有卡片创建者可编辑"}</p>
+                <Handshake className="w-8 h-8 text-faint mx-auto mb-2" />
+                <p className="text-xs text-faint">暂无谈价记录</p>
+                <p className="text-[10px] text-faint mt-1">{canEdit ? "点击上方按钮记录第一次谈价" : "只有卡片创建者可编辑"}</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {negotiations.map((n: any) => (
-                  <div key={n.id} className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group relative">
+                  <div key={n.id} className="p-4 rounded-xl bg-hover hover:bg-hover transition-colors group relative">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">第 {n.round} 轮</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-lime/10 text-brand font-medium">第 {n.round} 轮</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#666]">{n.createdAt}</span>
+                        <span className="text-[9px] text-faint">{n.createdAt}</span>
                         {canEdit && (
                           <button onClick={() => handleDeleteNeg(n.id)}
                             className="w-5 h-5 rounded bg-red-500/10 flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -611,8 +611,8 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[10px] text-[#888] mb-0.5">网红报价 {n.createdAt && <span className="text-[9px] text-[#666]">· {n.createdAt}</span>}</p>
-                        <p className="text-sm font-bold text-[#ccff00]">{n.userPrice > 0 ? `$${n.userPrice.toLocaleString()}` : "—"}</p>
+                        <p className="text-[10px] text-sub mb-0.5">网红报价 {n.createdAt && <span className="text-[9px] text-faint">· {n.createdAt}</span>}</p>
+                        <p className="text-sm font-bold text-brand">{n.userPrice > 0 ? `$${n.userPrice.toLocaleString()}` : "—"}</p>
                       </div>
                       <div>
                         {editingAdminPriceId === n.id && isAdmin ? (
@@ -623,21 +623,21 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                               onChange={(e) => setTempAdminPrice(e.target.value)}
                               placeholder="审核报价"
                               autoFocus
-                              className="w-20 bg-[#0a0a0a] border border-[#06b6d4]/20 rounded-lg px-2 py-0.5 text-[11px] text-white"
+                              className="w-20 bg-base border border-cy/20 rounded-lg px-2 py-0.5 text-[11px] text-content"
                             />
-                            <button onClick={() => handleAdminPriceSave(n.id)} className="px-1.5 py-0.5 rounded bg-[#06b6d4]/10 text-[#06b6d4] text-[9px]">确认</button>
-                            <button onClick={() => setEditingAdminPriceId(null)} className="px-1.5 py-0.5 rounded bg-white/[0.04] text-[#666] text-[9px]">取消</button>
+                            <button onClick={() => handleAdminPriceSave(n.id)} className="px-1.5 py-0.5 rounded bg-cy/10 text-cy text-[9px]">确认</button>
+                            <button onClick={() => setEditingAdminPriceId(null)} className="px-1.5 py-0.5 rounded bg-hover text-faint text-[9px]">取消</button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div>
-                              <p className="text-[10px] text-[#888] mb-0.5">审核报价 {n.adminPrice > 0 && n.createdAt && <span className="text-[9px] text-[#666]">· {n.createdAt}</span>}</p>
-                              <p className="text-sm font-bold text-[#06b6d4]">{n.adminPrice > 0 ? `$${n.adminPrice.toLocaleString()}` : "—"}</p>
+                              <p className="text-[10px] text-sub mb-0.5">审核报价 {n.adminPrice > 0 && n.createdAt && <span className="text-[9px] text-faint">· {n.createdAt}</span>}</p>
+                              <p className="text-sm font-bold text-cy">{n.adminPrice > 0 ? `$${n.adminPrice.toLocaleString()}` : "—"}</p>
                             </div>
                             {isAdmin && (
                               <button
                                 onClick={() => { setEditingAdminPriceId(n.id); setTempAdminPrice(String(n.adminPrice || "")); }}
-                                className="text-[9px] text-[#06b6d4]/60 hover:text-[#06b6d4] px-1.5 py-0.5 rounded hover:bg-[#06b6d4]/10 transition-all"
+                                className="text-[9px] text-cy/60 hover:text-cy px-1.5 py-0.5 rounded hover:bg-cy/10 transition-all"
                               >
                                 编辑
                               </button>
@@ -648,29 +648,29 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                     </div>
                     {/* Notes - editable by admin */}
                     {editingNoteId === n.id && isAdmin ? (
-                      <div className="mt-2 border-t border-white/[0.04] pt-2 flex items-center gap-1.5">
+                      <div className="mt-2 border-t border-line pt-2 flex items-center gap-1.5">
                         <input
                           type="text"
                           value={tempNote}
                           onChange={(e) => setTempNote(e.target.value)}
                           placeholder="输入备注..."
                           autoFocus
-                          className="flex-1 bg-[#0a0a0a] border border-[#ccff00]/20 rounded-lg px-2 py-1 text-[11px] text-white placeholder:text-[#444] focus:outline-none"
+                          className="flex-1 bg-base border border-brand/20 rounded-lg px-2 py-1 text-[11px] text-content placeholder:text-faint focus:outline-none"
                         />
-                        <button onClick={() => handleNoteSave(n.id)} className="px-1.5 py-1 rounded bg-[#ccff00]/10 text-[#ccff00] text-[9px]">保存</button>
-                        <button onClick={() => { setEditingNoteId(null); setTempNote(""); }} className="px-1.5 py-1 rounded bg-white/[0.04] text-[#666] text-[9px]">取消</button>
+                        <button onClick={() => handleNoteSave(n.id)} className="px-1.5 py-1 rounded bg-lime/10 text-brand text-[9px]">保存</button>
+                        <button onClick={() => { setEditingNoteId(null); setTempNote(""); }} className="px-1.5 py-1 rounded bg-hover text-faint text-[9px]">取消</button>
                       </div>
                     ) : (
-                      <div className="mt-2 border-t border-white/[0.04] pt-2 flex items-center justify-between">
+                      <div className="mt-2 border-t border-line pt-2 flex items-center justify-between">
                         {n.notes ? (
-                          <p className="text-[10px] text-[#888] flex-1">{n.notes}</p>
+                          <p className="text-[10px] text-sub flex-1">{n.notes}</p>
                         ) : (
-                          <p className="text-[10px] text-[#555] flex-1 italic">暂无备注</p>
+                          <p className="text-[10px] text-faint flex-1 italic">暂无备注</p>
                         )}
                         {isAdmin && (
                           <button
                             onClick={() => { setEditingNoteId(n.id); setTempNote(n.notes || ""); }}
-                            className="text-[9px] text-[#ccff00]/60 hover:text-[#ccff00] px-1.5 py-0.5 rounded hover:bg-[#ccff00]/10 transition-all ml-2"
+                            className="text-[9px] text-brand/60 hover:text-brand px-1.5 py-0.5 rounded hover:bg-lime/10 transition-all ml-2"
                           >
                             {n.notes ? "编辑备注" : "添加备注"}
                           </button>
@@ -689,22 +689,22 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           <div className="space-y-3">
             {canEdit && (
               <button onClick={() => setShowScriptForm(!showScriptForm)}
-                className="w-full py-2.5 rounded-xl border border-dashed border-[#ccff00]/30 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/5 transition-all flex items-center justify-center gap-1.5">
+                className="w-full py-2.5 rounded-xl border border-dashed border-brand/30 text-brand text-xs font-medium hover:bg-lime/5 transition-all flex items-center justify-center gap-1.5">
                 {showScriptForm ? <><ChevronDown className="w-3.5 h-3.5" />取消</> : <><Plus className="w-3.5 h-3.5" />提交脚本审核</>}
               </button>
             )}
             {showScriptForm && (
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-3">
-                <h4 className="text-xs font-bold text-white">提交脚本（第 {scripts.length + 1} 次）</h4>
+              <div className="p-4 rounded-xl bg-hover border border-brand/10 space-y-3">
+                <h4 className="text-xs font-bold text-content">提交脚本（第 {scripts.length + 1} 次）</h4>
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">脚本内容 *</label>
+                  <label className="text-[10px] text-faint mb-1 block">脚本内容 *</label>
                   <textarea value={scriptText} onChange={(e) => setScriptText(e.target.value)} placeholder="粘贴网红提供的脚本文本..."
-                    rows={5} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                    rows={5} className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">你的意见</label>
+                  <label className="text-[10px] text-faint mb-1 block">你的意见</label>
                   <textarea value={scriptNote} onChange={(e) => setScriptNote(e.target.value)} placeholder="你对这版脚本的初步看法..."
-                    rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                    rows={2} className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                 </div>
                 <button onClick={handleAddScript}
                   className="w-full btn-lime text-xs flex items-center justify-center gap-1.5 py-2">
@@ -714,36 +714,36 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
             )}
             {scripts.length === 0 ? (
               <div className="text-center py-8">
-                <FileText className="w-8 h-8 text-[#444] mx-auto mb-2" />
-                <p className="text-xs text-[#666]">暂无脚本审核记录</p>
-                <p className="text-[10px] text-[#555] mt-1">{canEdit ? "点击上方按钮提交脚本" : "只有卡片创建者可提交"}</p>
+                <FileText className="w-8 h-8 text-faint mx-auto mb-2" />
+                <p className="text-xs text-faint">暂无脚本审核记录</p>
+                <p className="text-[10px] text-faint mt-1">{canEdit ? "点击上方按钮提交脚本" : "只有卡片创建者可提交"}</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {scripts.map((s: any) => (
-                  <div key={s.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div key={s.id} className="p-4 rounded-xl bg-hover border border-line">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">第 {s.round} 次</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-lime/10 text-brand font-medium">第 {s.round} 次</span>
                         <StatusBadge status={s.status} />
                       </div>
-                      <span className="text-[10px] text-[#666]">{s.submittedAt}</span>
+                      <span className="text-[10px] text-faint">{s.submittedAt}</span>
                     </div>
-                    <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
-                      <p className="text-[11px] text-white whitespace-pre-wrap leading-relaxed">{s.scriptText}</p>
+                    <div className="bg-base rounded-lg p-3 mb-3">
+                      <p className="text-[11px] text-content whitespace-pre-wrap leading-relaxed">{s.scriptText}</p>
                     </div>
                     {s.userNote && (
                       <div className="mb-3">
-                        <p className="text-[9px] text-[#888] mb-0.5">用户意见</p>
-                        <p className="text-[11px] text-[#aaa]">{s.userNote}</p>
+                        <p className="text-[9px] text-sub mb-0.5">用户意见</p>
+                        <p className="text-[11px] text-sub">{s.userNote}</p>
                       </div>
                     )}
                     {s.status === "pending" && isAdmin && (
-                      <div className="border-t border-white/[0.06] pt-3 space-y-2">
+                      <div className="border-t border-line pt-3 space-y-2">
                         {reviewingScriptId === s.id ? (
                           <>
                             <textarea value={scriptAdminNote} onChange={(e) => setScriptAdminNote(e.target.value)} placeholder="管理员意见..."
-                              rows={2} className="w-full bg-[#0a0a0a] border border-[#ccff00]/15 rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                              rows={2} className="w-full bg-base border border-brand/15 rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                             <div className="flex gap-2">
                               <button onClick={() => handleReviewScript(s.id, "approved")}
                                 className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 flex items-center justify-center gap-1">
@@ -757,19 +757,19 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                           </>
                         ) : (
                           <button onClick={() => setReviewingScriptId(s.id)}
-                            className="w-full py-2 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/20">
+                            className="w-full py-2 rounded-lg bg-lime/10 text-brand text-xs font-medium hover:bg-lime/20">
                             审核此脚本
                           </button>
                         )}
                       </div>
                     )}
                     {s.status !== "pending" && (
-                      <div className="border-t border-white/[0.06] pt-3">
+                      <div className="border-t border-line pt-3">
                         <div className="flex items-center gap-1.5 mb-1">
                           <StatusBadge status={s.status} />
-                          <span className="text-[9px] text-[#666]">{s.reviewedAt}</span>
+                          <span className="text-[9px] text-faint">{s.reviewedAt}</span>
                         </div>
-                        {s.adminNote && <p className="text-[11px] text-[#aaa]">{s.adminNote}</p>}
+                        {s.adminNote && <p className="text-[11px] text-sub">{s.adminNote}</p>}
                       </div>
                     )}
                   </div>
@@ -784,56 +784,56 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           <div className="space-y-3">
             {canEdit && (
               <button onClick={() => setShowVideoForm(!showVideoForm)}
-                className="w-full py-2.5 rounded-xl border border-dashed border-[#ccff00]/30 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/5 transition-all flex items-center justify-center gap-1.5">
+                className="w-full py-2.5 rounded-xl border border-dashed border-brand/30 text-brand text-xs font-medium hover:bg-lime/5 transition-all flex items-center justify-center gap-1.5">
                 {showVideoForm ? <><ChevronDown className="w-3.5 h-3.5" />取消</> : <><Plus className="w-3.5 h-3.5" />提交视频初稿</>}
               </button>
             )}
             {showVideoForm && (
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-3">
-                <h4 className="text-xs font-bold text-white">提交视频初稿（第 {videos.length + 1} 次）</h4>
-                <div className="flex gap-1 p-1 rounded-lg bg-white/[0.02]">
+              <div className="p-4 rounded-xl bg-hover border border-brand/10 space-y-3">
+                <h4 className="text-xs font-bold text-content">提交视频初稿（第 {videos.length + 1} 次）</h4>
+                <div className="flex gap-1 p-1 rounded-lg bg-hover">
                   <button onClick={() => setUploadMode("file")}
-                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${uploadMode === "file" ? "bg-[#ccff00]/10 text-[#ccff00]" : "text-[#666] hover:text-white"}`}>
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${uploadMode === "file" ? "bg-lime/10 text-brand" : "text-faint hover:text-content"}`}>
                     <Upload className="w-3 h-3" />上传文件
                   </button>
                   <button onClick={() => setUploadMode("link")}
-                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${uploadMode === "link" ? "bg-[#ccff00]/10 text-[#ccff00]" : "text-[#666] hover:text-white"}`}>
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${uploadMode === "link" ? "bg-lime/10 text-brand" : "text-faint hover:text-content"}`}>
                     <LinkIcon className="w-3 h-3" />粘贴链接
                   </button>
                 </div>
                 {uploadMode === "file" ? (
                   <>
                     {compressing && (
-                      <div className="rounded-xl border border-[#ccff00]/20 bg-[#0a0a0a] p-4 space-y-2">
+                      <div className="rounded-xl border border-brand/20 bg-base p-4 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#ccff00] font-medium">{compressProgress.message}</span>
-                          <span className="text-xs text-[#888]">{compressProgress.percent}%</span>
+                          <span className="text-xs text-brand font-medium">{compressProgress.message}</span>
+                          <span className="text-xs text-sub">{compressProgress.percent}%</span>
                         </div>
-                        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#ccff00] rounded-full transition-all duration-300" style={{ width: `${compressProgress.percent}%` }} />
+                        <div className="h-1.5 bg-hover rounded-full overflow-hidden">
+                          <div className="h-full bg-lime rounded-full transition-all duration-300" style={{ width: `${compressProgress.percent}%` }} />
                         </div>
                       </div>
                     )}
                     {!compressing && !videoFile ? (
-                      <label className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed border-white/[0.08] hover:border-[#ccff00]/30 cursor-pointer transition-all bg-[#0a0a0a]">
-                        <Upload className="w-6 h-6 text-[#555]" />
-                        <p className="text-xs text-[#888]">点击或拖拽上传视频</p>
-                        <p className="text-[10px] text-[#555]">自动压缩至720p · 支持 mp4 / mov / avi</p>
+                      <label className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed border-line hover:border-brand/30 cursor-pointer transition-all bg-base">
+                        <Upload className="w-6 h-6 text-faint" />
+                        <p className="text-xs text-sub">点击或拖拽上传视频</p>
+                        <p className="text-[10px] text-faint">自动压缩至720p · 支持 mp4 / mov / avi</p>
                         <input type="file" accept="video/*" onChange={handleVideoFileSelect} className="hidden" />
                       </label>
                     ) : !compressing && (
-                      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.06]">
+                      <div className="relative rounded-xl overflow-hidden bg-base border border-line">
                         <video src={videoFile} controls className="w-full max-h-[200px] object-contain" />
-                        <div className="flex items-center justify-between px-3 py-2 border-t border-white/[0.04]">
-                          <span className="text-[10px] text-[#888] truncate flex-1 mr-2">{videoFileName}</span>
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-line">
+                          <span className="text-[10px] text-sub truncate flex-1 mr-2">{videoFileName}</span>
                           <button onClick={() => { setVideoFile(""); setVideoFileName(""); setCompressInfo(""); }}
                             className="w-5 h-5 rounded bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-colors shrink-0">
                             <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                         {compressInfo && (
-                          <div className="px-3 py-1.5 border-t border-white/[0.04] bg-[#ccff00]/5">
-                            <p className="text-[10px] text-[#ccff00]">{compressInfo}</p>
+                          <div className="px-3 py-1.5 border-t border-line bg-lime/5">
+                            <p className="text-[10px] text-brand">{compressInfo}</p>
                           </div>
                         )}
                       </div>
@@ -841,15 +841,15 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                   </>
                 ) : (
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">视频链接 *</label>
+                    <label className="text-[10px] text-faint mb-1 block">视频链接 *</label>
                     <input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="视频文件链接（云盘、网盘等）"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                 )}
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">你的意见</label>
+                  <label className="text-[10px] text-faint mb-1 block">你的意见</label>
                   <textarea value={videoNote} onChange={(e) => setVideoNote(e.target.value)} placeholder="你对这版视频的初步看法..."
-                    rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                    rows={2} className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                 </div>
                 <button onClick={handleAddVideo} disabled={uploadMode === "file" ? !videoFile : !videoUrl.trim()}
                   className="w-full btn-lime text-xs flex items-center justify-center gap-1.5 py-2 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -859,34 +859,34 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
             )}
             {videos.length === 0 ? (
               <div className="text-center py-8">
-                <Video className="w-8 h-8 text-[#444] mx-auto mb-2" />
-                <p className="text-xs text-[#666]">暂无视频初稿记录</p>
-                <p className="text-[10px] text-[#555] mt-1">{canEdit ? "点击上方按钮提交视频" : "只有卡片创建者可提交"}</p>
+                <Video className="w-8 h-8 text-faint mx-auto mb-2" />
+                <p className="text-xs text-faint">暂无视频初稿记录</p>
+                <p className="text-[10px] text-faint mt-1">{canEdit ? "点击上方按钮提交视频" : "只有卡片创建者可提交"}</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {videos.map((v: any) => (
-                  <div key={v.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div key={v.id} className="p-4 rounded-xl bg-hover border border-line">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">第 {v.round} 次</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-lime/10 text-brand font-medium">第 {v.round} 次</span>
                         <StatusBadge status={v.status} />
                       </div>
-                      <span className="text-[10px] text-[#666]">{v.submittedAt}</span>
+                      <span className="text-[10px] text-faint">{v.submittedAt}</span>
                     </div>
                     <VideoPlayer videoUrl={v.videoUrl} videoFileName={v.videoFileName} />
                     {v.userNote && (
                       <div className="mb-3">
-                        <p className="text-[9px] text-[#888] mb-0.5">用户意见</p>
-                        <p className="text-[11px] text-[#aaa]">{v.userNote}</p>
+                        <p className="text-[9px] text-sub mb-0.5">用户意见</p>
+                        <p className="text-[11px] text-sub">{v.userNote}</p>
                       </div>
                     )}
                     {v.status === "pending" && isAdmin && (
-                      <div className="border-t border-white/[0.06] pt-3 space-y-2">
+                      <div className="border-t border-line pt-3 space-y-2">
                         {reviewingVideoId === v.id ? (
                           <>
                             <textarea value={videoAdminNote} onChange={(e) => setVideoAdminNote(e.target.value)} placeholder="管理员意见..."
-                              rows={2} className="w-full bg-[#0a0a0a] border border-[#ccff00]/15 rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                              rows={2} className="w-full bg-base border border-brand/15 rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                             <div className="flex gap-2">
                               <button onClick={() => handleReviewVideo(v.id, "approved")}
                                 className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 flex items-center justify-center gap-1">
@@ -900,19 +900,19 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                           </>
                         ) : (
                           <button onClick={() => setReviewingVideoId(v.id)}
-                            className="w-full py-2 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/20">
+                            className="w-full py-2 rounded-lg bg-lime/10 text-brand text-xs font-medium hover:bg-lime/20">
                             审核此视频
                           </button>
                         )}
                       </div>
                     )}
                     {v.status !== "pending" && (
-                      <div className="border-t border-white/[0.06] pt-3">
+                      <div className="border-t border-line pt-3">
                         <div className="flex items-center gap-1.5 mb-1">
                           <StatusBadge status={v.status} />
-                          <span className="text-[9px] text-[#666]">{v.reviewedAt}</span>
+                          <span className="text-[9px] text-faint">{v.reviewedAt}</span>
                         </div>
-                        {v.adminNote && <p className="text-[11px] text-[#aaa]">{v.adminNote}</p>}
+                        {v.adminNote && <p className="text-[11px] text-sub">{v.adminNote}</p>}
                       </div>
                     )}
                   </div>
@@ -927,51 +927,51 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           <div className="space-y-3">
             {canEdit && (
               <button onClick={() => setShowPostForm(!showPostForm)}
-                className="w-full py-2.5 rounded-xl border border-dashed border-[#ccff00]/30 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/5 transition-all flex items-center justify-center gap-1.5">
+                className="w-full py-2.5 rounded-xl border border-dashed border-brand/30 text-brand text-xs font-medium hover:bg-lime/5 transition-all flex items-center justify-center gap-1.5">
                 {showPostForm ? <><ChevronDown className="w-3.5 h-3.5" />取消</> : <><Plus className="w-3.5 h-3.5" />记录新发布</>}
               </button>
             )}
             {showPostForm && (
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-3">
-                <h4 className="text-xs font-bold text-white">新增发布记录</h4>
+              <div className="p-4 rounded-xl bg-hover border border-brand/10 space-y-3">
+                <h4 className="text-xs font-bold text-content">新增发布记录</h4>
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">发布视频链接 *</label>
+                  <label className="text-[10px] text-faint mb-1 block">发布视频链接 *</label>
                   <input type="url" value={postVideoUrl} onChange={(e) => setPostVideoUrl(e.target.value)} placeholder="发布后的视频链接（TikTok、Instagram等）"
-                    className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                    className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">次日曝光</label>
+                    <label className="text-[10px] text-faint mb-1 block">次日曝光</label>
                     <input type="number" value={postNextDayExp} onChange={(e) => setPostNextDayExp(e.target.value)} placeholder="0"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">7日曝光</label>
+                    <label className="text-[10px] text-faint mb-1 block">7日曝光</label>
                     <input type="number" value={postSevenDayExp} onChange={(e) => setPostSevenDayExp(e.target.value)} placeholder="0"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">点赞</label>
+                    <label className="text-[10px] text-faint mb-1 block">点赞</label>
                     <input type="number" value={postLikes} onChange={(e) => setPostLikes(e.target.value)} placeholder="0"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">评论</label>
+                    <label className="text-[10px] text-faint mb-1 block">评论</label>
                     <input type="number" value={postComments} onChange={(e) => setPostComments(e.target.value)} placeholder="0"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#666] mb-1 block">转发</label>
+                    <label className="text-[10px] text-faint mb-1 block">转发</label>
                     <input type="number" value={postShares} onChange={(e) => setPostShares(e.target.value)} placeholder="0"
-                      className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-[#666] mb-1 block">备注</label>
+                  <label className="text-[10px] text-faint mb-1 block">备注</label>
                   <textarea value={postNotes} onChange={(e) => setPostNotes(e.target.value)} placeholder="发布备注..."
-                    rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                    rows={2} className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                 </div>
                 <button onClick={handleAddPost} disabled={!postVideoUrl.trim()}
                   className="w-full btn-lime text-xs flex items-center justify-center gap-1.5 py-2 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -981,9 +981,9 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
             )}
             {posts.length === 0 ? (
               <div className="text-center py-8">
-                <BarChart3 className="w-8 h-8 text-[#444] mx-auto mb-2" />
-                <p className="text-xs text-[#666]">暂无发布记录</p>
-                <p className="text-[10px] text-[#555] mt-1">{canEdit ? "点击上方按钮记录发布数据" : "只有卡片创建者可编辑"}</p>
+                <BarChart3 className="w-8 h-8 text-faint mx-auto mb-2" />
+                <p className="text-xs text-faint">暂无发布记录</p>
+                <p className="text-[10px] text-faint mt-1">{canEdit ? "点击上方按钮记录发布数据" : "只有卡片创建者可编辑"}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -994,13 +994,13 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                     ? ((lastAdminPrice / p.sevenDayExposures) * 1000).toFixed(2)
                     : null;
                   return (
-                    <div key={p.id} className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors group relative">
+                    <div key={p.id} className="p-4 rounded-xl bg-hover hover:bg-hover transition-colors group relative">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] font-medium">{p.createdAt}</span>
+                          <span className="text-[9px] px-2 py-0.5 rounded-md bg-lime/10 text-brand font-medium">{p.createdAt}</span>
                           <StatusBadge status={p.status || "pending"} />
                           {cpm7d && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#06b6d4]/10 text-[#06b6d4] font-medium">CPM ${cpm7d}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-cy/10 text-cy font-medium">CPM ${cpm7d}</span>
                           )}
                         </div>
                         {canEdit && (
@@ -1010,41 +1010,41 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                           </button>
                         )}
                       </div>
-                      <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
+                      <div className="bg-base rounded-lg p-3 mb-3">
                         <a href={p.videoUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-[11px] text-[#06b6d4] hover:underline break-all flex items-center gap-1">
+                          className="text-[11px] text-cy hover:underline break-all flex items-center gap-1">
                           <ExternalLink className="w-3 h-3" />{p.videoUrl}
                         </a>
                       </div>
                       <div className="grid grid-cols-5 gap-3 mb-2">
                         <div>
-                          <p className="text-[9px] text-[#666]">次日曝光</p>
-                          <p className="text-xs font-bold text-white">{p.nextDayExposures > 0 ? formatNumber(p.nextDayExposures) : "—"}</p>
+                          <p className="text-[9px] text-faint">次日曝光</p>
+                          <p className="text-xs font-bold text-content">{p.nextDayExposures > 0 ? formatNumber(p.nextDayExposures) : "—"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-[#666]">7日曝光</p>
-                          <p className="text-xs font-bold text-white">{p.sevenDayExposures > 0 ? formatNumber(p.sevenDayExposures) : "—"}</p>
+                          <p className="text-[9px] text-faint">7日曝光</p>
+                          <p className="text-xs font-bold text-content">{p.sevenDayExposures > 0 ? formatNumber(p.sevenDayExposures) : "—"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-[#666]">点赞</p>
-                          <p className="text-xs font-bold text-white">{p.likes > 0 ? formatNumber(p.likes) : "—"}</p>
+                          <p className="text-[9px] text-faint">点赞</p>
+                          <p className="text-xs font-bold text-content">{p.likes > 0 ? formatNumber(p.likes) : "—"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-[#666]">评论</p>
-                          <p className="text-xs font-bold text-white">{p.comments > 0 ? formatNumber(p.comments) : "—"}</p>
+                          <p className="text-[9px] text-faint">评论</p>
+                          <p className="text-xs font-bold text-content">{p.comments > 0 ? formatNumber(p.comments) : "—"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-[#666]">转发</p>
-                          <p className="text-xs font-bold text-white">{p.shares > 0 ? formatNumber(p.shares) : "—"}</p>
+                          <p className="text-[9px] text-faint">转发</p>
+                          <p className="text-xs font-bold text-content">{p.shares > 0 ? formatNumber(p.shares) : "—"}</p>
                         </div>
                       </div>
-                      {p.notes && <p className="text-[10px] text-[#888] border-t border-white/[0.04] pt-2">{p.notes}</p>}
+                      {p.notes && <p className="text-[10px] text-sub border-t border-line pt-2">{p.notes}</p>}
                       {(p.status ?? "pending") === "pending" && isAdmin && (
-                        <div className="border-t border-white/[0.06] mt-2 pt-3 space-y-2">
+                        <div className="border-t border-line mt-2 pt-3 space-y-2">
                           {reviewingPostId === p.id ? (
                             <>
                               <textarea value={postAdminNote} onChange={(e) => setPostAdminNote(e.target.value)} placeholder="管理员意见..."
-                                rows={2} className="w-full bg-[#0a0a0a] border border-[#ccff00]/15 rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+                                rows={2} className="w-full bg-base border border-brand/15 rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
                               <div className="flex gap-2">
                                 <button onClick={() => handleReviewPost(p.id, "approved")}
                                   className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 flex items-center justify-center gap-1">
@@ -1058,19 +1058,19 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                             </>
                           ) : (
                             <button onClick={() => setReviewingPostId(p.id)}
-                              className="w-full py-2 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-xs font-medium hover:bg-[#ccff00]/20">
+                              className="w-full py-2 rounded-lg bg-lime/10 text-brand text-xs font-medium hover:bg-lime/20">
                               审核此发布
                             </button>
                           )}
                         </div>
                       )}
                       {(p.status ?? "pending") !== "pending" && (
-                        <div className="border-t border-white/[0.06] mt-2 pt-3">
+                        <div className="border-t border-line mt-2 pt-3">
                           <div className="flex items-center gap-1.5 mb-1">
                             <StatusBadge status={p.status} />
-                            <span className="text-[9px] text-[#666]">{p.reviewedAt}</span>
+                            <span className="text-[9px] text-faint">{p.reviewedAt}</span>
                           </div>
-                          {p.adminNote && <p className="text-[11px] text-[#aaa]">{p.adminNote}</p>}
+                          {p.adminNote && <p className="text-[11px] text-sub">{p.adminNote}</p>}
                         </div>
                       )}
                     </div>
@@ -1122,34 +1122,34 @@ function VideoPlayer({ videoUrl, videoFileName }: { videoUrl: string; videoFileN
 
   if (loading) {
     return (
-      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04] flex items-center justify-center py-8">
-        <span className="text-xs text-[#666]">正在加载视频...</span>
+      <div className="rounded-lg overflow-hidden mb-3 bg-base border border-line flex items-center justify-center py-8">
+        <span className="text-xs text-faint">正在加载视频...</span>
       </div>
     );
   }
 
   if (!src) {
     return (
-      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04] flex items-center justify-center py-8">
-        <span className="text-xs text-[#666]">视频文件未找到</span>
+      <div className="rounded-lg overflow-hidden mb-3 bg-base border border-line flex items-center justify-center py-8">
+        <span className="text-xs text-faint">视频文件未找到</span>
       </div>
     );
   }
 
   if (src.startsWith("data:video")) {
     return (
-      <div className="rounded-lg overflow-hidden mb-3 bg-[#0a0a0a] border border-white/[0.04]">
+      <div className="rounded-lg overflow-hidden mb-3 bg-base border border-line">
         <video src={src} controls className="w-full max-h-[200px] object-contain" />
-        {videoFileName && <p className="px-3 py-1.5 text-[10px] text-[#888] border-t border-white/[0.04]">{videoFileName}</p>}
+        {videoFileName && <p className="px-3 py-1.5 text-[10px] text-sub border-t border-line">{videoFileName}</p>}
       </div>
     );
   }
 
   // External link
   return (
-    <div className="bg-[#0a0a0a] rounded-lg p-3 mb-3">
+    <div className="bg-base rounded-lg p-3 mb-3">
       <a href={src} target="_blank" rel="noopener noreferrer"
-        className="text-[11px] text-[#06b6d4] hover:underline break-all flex items-center gap-1">
+        className="text-[11px] text-cy hover:underline break-all flex items-center gap-1">
         <Video className="w-3 h-3" />{src}
       </a>
     </div>
@@ -1163,11 +1163,11 @@ function TabButton({ active, onClick, icon: Icon, label, count, badge }: {
   return (
     <button onClick={onClick}
       className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-        active ? "bg-[#ccff00]/10 text-[#ccff00]" : "text-[#666] hover:text-white"
+        active ? "bg-lime/10 text-brand" : "text-faint hover:text-content"
       }`}>
       <Icon className="w-4 h-4" />{label}
-      {count > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-white/[0.06] text-[#888]">{count}</span>}
-      {badge && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#ccff00]" />}
+      {count > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-hover text-sub">{count}</span>}
+      {badge && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-lime" />}
     </button>
   );
 }
@@ -1184,7 +1184,7 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
   return (
-    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] font-medium flex items-center gap-0.5">
+    <span className="text-[10px] px-1.5 py-0.5 rounded bg-lime/10 text-brand font-medium flex items-center gap-0.5">
       <Clock className="w-2.5 h-2.5" />待审核
     </span>
   );

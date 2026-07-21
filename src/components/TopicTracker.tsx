@@ -113,12 +113,12 @@ export default function TopicTracker() {
         {t.name}
       </a>
       {isAdmin && t.createdByUnionId && (
-        <span className="text-[8px] text-[#555] pl-1 mt-0.5">{formatCreator(t.createdByUnionId)}</span>
+        <span className="text-[8px] text-faint pl-1 mt-0.5">{formatCreator(t.createdByUnionId)}</span>
       )}
       {canEdit(t) && (
         <button
           onClick={() => deleteTag.mutate({ id: t.id })}
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-opacity"
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500/80 text-content flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-opacity"
         >
           <X className="w-2.5 h-2.5" />
         </button>
@@ -131,21 +131,21 @@ export default function TopicTracker() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Tag className="w-4 h-4 text-[#ccff00]" />
+          <Tag className="w-4 h-4 text-brand" />
           <h2 className="section-title">话题追踪</h2>
-          <span className="text-[10px] text-[#666]">{tags.length} 个话题</span>
+          <span className="text-[10px] text-faint">{tags.length} 个话题</span>
         </div>
         {isAuthenticated && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAddCategory(!showAddCategory)}
-              className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] text-[#888] hover:bg-white/[0.08] hover:text-white transition-all flex items-center gap-1"
+              className="text-[10px] px-2 py-1 rounded-lg bg-hover text-sub hover:bg-hover hover:text-content transition-all flex items-center gap-1"
             >
               <FolderPlus className="w-3 h-3" />分类
             </button>
             <button
               onClick={() => setShowAddTag(!showAddTag)}
-              className="text-[10px] px-2 py-1 rounded-lg bg-[#ccff00]/10 text-[#ccff00] hover:bg-[#ccff00]/20 transition-all flex items-center gap-1"
+              className="text-[10px] px-2 py-1 rounded-lg bg-lime/10 text-brand hover:bg-lime/20 transition-all flex items-center gap-1"
             >
               <Plus className="w-3 h-3" />话题
             </button>
@@ -155,15 +155,15 @@ export default function TopicTracker() {
 
       {/* Add Category Form */}
       {showAddCategory && isAdmin && (
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-2">
-          <p className="text-[10px] text-[#888]">新建分类</p>
+        <div className="p-3 rounded-xl bg-hover border border-brand/10 space-y-2">
+          <p className="text-[10px] text-sub">新建分类</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
               placeholder="分类名称（如：美妆、美食）"
-              className="flex-1 bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+              className="flex-1 bg-base border border-line rounded-lg px-3 py-1.5 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
             />
             <div className="flex items-center gap-1">
               {PRESET_COLORS.slice(0, 6).map((c) => (
@@ -178,43 +178,43 @@ export default function TopicTracker() {
                 />
               ))}
             </div>
-            <button onClick={handleAddCategory} className="px-3 py-1.5 rounded-lg bg-[#ccff00] text-black text-[10px] font-bold">创建</button>
-            <button onClick={() => setShowAddCategory(false)} className="px-2 py-1.5 rounded-lg bg-white/[0.04] text-[#666] text-[10px]">取消</button>
+            <button onClick={handleAddCategory} className="px-3 py-1.5 rounded-lg bg-lime text-black text-[10px] font-bold">创建</button>
+            <button onClick={() => setShowAddCategory(false)} className="px-2 py-1.5 rounded-lg bg-hover text-faint text-[10px]">取消</button>
           </div>
         </div>
       )}
 
       {/* Add Hashtag Form */}
       {showAddTag && isAdmin && (
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-[#ccff00]/10 space-y-2">
-          <p className="text-[10px] text-[#888]">新建话题</p>
+        <div className="p-3 rounded-xl bg-hover border border-brand/10 space-y-2">
+          <p className="text-[10px] text-sub">新建话题</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               placeholder="#话题名称"
-              className="w-32 bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+              className="w-32 bg-base border border-line rounded-lg px-3 py-1.5 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
             />
             <input
               type="url"
               value={newTagUrl}
               onChange={(e) => setNewTagUrl(e.target.value)}
               placeholder="链接地址"
-              className="flex-1 bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+              className="flex-1 bg-base border border-line rounded-lg px-3 py-1.5 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
             />
             <select
               value={newTagCategoryId || ""}
               onChange={(e) => setNewTagCategoryId(e.target.value ? parseInt(e.target.value) : null)}
-              className="bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#ccff00]/30"
+              className="bg-base border border-line rounded-lg px-2 py-1.5 text-xs text-content focus:outline-none focus:border-brand/30"
             >
               <option value="">选择分类</option>
               {categories.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <button onClick={handleAddTag} className="px-3 py-1.5 rounded-lg bg-[#ccff00] text-black text-[10px] font-bold">添加</button>
-            <button onClick={() => setShowAddTag(false)} className="px-2 py-1.5 rounded-lg bg-white/[0.04] text-[#666] text-[10px]">取消</button>
+            <button onClick={handleAddTag} className="px-3 py-1.5 rounded-lg bg-lime text-black text-[10px] font-bold">添加</button>
+            <button onClick={() => setShowAddTag(false)} className="px-2 py-1.5 rounded-lg bg-hover text-faint text-[10px]">取消</button>
           </div>
         </div>
       )}
@@ -228,15 +228,15 @@ export default function TopicTracker() {
             <div key={cat.id}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                <span className="text-[11px] font-medium text-white">{cat.name}</span>
-                <span className="text-[10px] text-[#666]">{catTags.length}</span>
+                <span className="text-[11px] font-medium text-content">{cat.name}</span>
+                <span className="text-[10px] text-faint">{catTags.length}</span>
                 {isAdmin && cat.createdByUnionId && (
-                  <span className="text-[9px] text-[#555] ml-1">by {formatCreator(cat.createdByUnionId)}</span>
+                  <span className="text-[9px] text-faint ml-1">by {formatCreator(cat.createdByUnionId)}</span>
                 )}
                 {canEdit(cat) && (
                   <button
                     onClick={() => { if (confirm("删除此分类？")) deleteCategory.mutate({ id: cat.id }); }}
-                    className="text-[9px] text-[#666] hover:text-red-400 transition-colors ml-auto"
+                    className="text-[9px] text-faint hover:text-red-400 transition-colors ml-auto"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -253,11 +253,11 @@ export default function TopicTracker() {
         {uncategorized.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-[#666]" />
-              <span className="text-[11px] font-medium text-[#888]">未分类</span>
-              <span className="text-[10px] text-[#666]">{uncategorized.length}</span>
+              <span className="w-2 h-2 rounded-full bg-faint" />
+              <span className="text-[11px] font-medium text-sub">未分类</span>
+              <span className="text-[10px] text-faint">{uncategorized.length}</span>
               {isAdmin && uncategorized.some((t: any) => t.createdByUnionId) && (
-                <span className="text-[9px] text-[#555]">（多用户）</span>
+                <span className="text-[9px] text-faint">（多用户）</span>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -268,9 +268,9 @@ export default function TopicTracker() {
 
         {tags.length === 0 && (
           <div className="text-center py-6">
-            <Hash className="w-6 h-6 text-[#444] mx-auto mb-2" />
-            <p className="text-xs text-[#666]">暂无话题</p>
-            <p className="text-[10px] text-[#555]">{isAuthenticated ? "点击右上角添加话题" : "登录后可添加话题"}</p>
+            <Hash className="w-6 h-6 text-faint mx-auto mb-2" />
+            <p className="text-xs text-faint">暂无话题</p>
+            <p className="text-[10px] text-faint">{isAuthenticated ? "点击右上角添加话题" : "登录后可添加话题"}</p>
           </div>
         )}
       </div>

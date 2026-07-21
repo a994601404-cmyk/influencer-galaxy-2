@@ -48,8 +48,8 @@ function deriveHandle(name: string, links: LinkRow[]): string {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 pt-2">
-      <span className="text-[11px] font-bold text-[#ccff00] tracking-wider">{children}</span>
-      <div className="flex-1 h-px bg-white/[0.06]" />
+      <span className="text-[11px] font-bold text-brand tracking-wider">{children}</span>
+      <div className="flex-1 h-px bg-hover" />
     </div>
   );
 }
@@ -195,12 +195,12 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-[560px] mx-4 max-h-[90vh] overflow-y-auto bg-[#141414] border border-white/[0.06] rounded-2xl shadow-2xl p-6 space-y-4">
+      <div className="relative w-full max-w-[560px] mx-4 max-h-[90vh] overflow-y-auto bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <Plus className="w-5 h-5 text-[#ccff00]" />添加新网红
+          <h2 className="text-lg font-black text-content flex items-center gap-2">
+            <Plus className="w-5 h-5 text-brand" />添加新网红
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.1] transition-all">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -218,14 +218,14 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
           {/* Name + Platform */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">名称 *</label>
+              <label className="text-[11px] text-faint mb-1 block">名称 *</label>
               <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Lisa Chen" required
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
             </div>
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">平台</label>
+              <label className="text-[11px] text-faint mb-1 block">平台</label>
               <select value={formPlatform} onChange={(e) => setFormPlatform(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 <option value="instagram">Instagram</option>
                 <option value="tiktok">TikTok</option>
                 <option value="xiaohongshu">小红书</option>
@@ -236,14 +236,14 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
 
           {/* Niche */}
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">领域</label>
+            <label className="text-[11px] text-faint mb-1 block">领域</label>
             <div className="relative">
               <select value={formNiche} onChange={(e) => setFormNiche(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30 pr-16">
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30 pr-16">
                 {Object.entries(allNiches).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <button type="button" onClick={() => setShowAddNiche(!showAddNiche)}
-                className="absolute right-8 top-1/2 -translate-y-1/2 text-[#ccff00] hover:text-white transition-colors">
+                className="absolute right-8 top-1/2 -translate-y-1/2 text-brand hover:text-content transition-colors">
                 <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -251,10 +251,10 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
               <div className="mt-2 flex items-center gap-2">
                 <input value={newNicheName} onChange={(e) => setNewNicheName(e.target.value)}
                   placeholder="新领域名称" autoFocus
-                  className="flex-1 bg-[#0a0a0a] border border-[#ccff00]/20 rounded-lg px-2 py-1 text-xs text-white placeholder:text-[#444] focus:outline-none"
+                  className="flex-1 bg-base border border-brand/20 rounded-lg px-2 py-1 text-xs text-content placeholder:text-faint focus:outline-none"
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomNiche(); } }} />
-                <button type="button" onClick={handleAddCustomNiche} className="px-2 py-1 rounded bg-[#ccff00] text-black text-[10px] font-bold">添加</button>
-                <button type="button" onClick={() => { setShowAddNiche(false); setNewNicheName(""); }} className="px-2 py-1 rounded bg-white/[0.04] text-[#666] text-[10px]">取消</button>
+                <button type="button" onClick={handleAddCustomNiche} className="px-2 py-1 rounded bg-lime text-black text-[10px] font-bold">添加</button>
+                <button type="button" onClick={() => { setShowAddNiche(false); setNewNicheName(""); }} className="px-2 py-1 rounded bg-hover text-faint text-[10px]">取消</button>
               </div>
             )}
           </div>
@@ -262,30 +262,30 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
           {/* Gender + Country */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">性别</label>
+              <label className="text-[11px] text-faint mb-1 block">性别</label>
               <select value={formGender} onChange={(e) => setFormGender(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 <option value="other">其他</option>
                 <option value="male">男</option>
                 <option value="female">女</option>
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">国家/地区</label>
+              <label className="text-[11px] text-faint mb-1 block">国家/地区</label>
               <CountrySelect value={formLocation} onChange={setFormLocation} />
             </div>
           </div>
 
           {/* Profile links (multiple, each with a platform note) */}
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">主页链接（可添加多个）</label>
+            <label className="text-[11px] text-faint mb-1 block">主页链接（可添加多个）</label>
             <div className="space-y-2">
               {links.map((link, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <select
                     value={link.platform}
                     onChange={(e) => updateLink(idx, { platform: e.target.value })}
-                    className="w-28 flex-shrink-0 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-2 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]/30"
+                    className="w-28 flex-shrink-0 bg-base border border-line rounded-xl px-2 py-2 text-xs text-content focus:outline-none focus:border-brand/30"
                   >
                     {LINK_PLATFORM_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -294,7 +294,7 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
                     value={link.url}
                     onChange={(e) => updateLink(idx, { url: e.target.value })}
                     placeholder="https://..."
-                    className="flex-1 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+                    className="flex-1 bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
                   />
                   {links.length > 1 && (
                     <button type="button" onClick={() => removeLinkRow(idx)}
@@ -305,7 +305,7 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
                 </div>
               ))}
               <button type="button" onClick={addLinkRow}
-                className="flex items-center gap-1.5 text-[11px] text-[#06b6d4]/70 hover:text-[#06b6d4] transition-colors">
+                className="flex items-center gap-1.5 text-[11px] text-cy/70 hover:text-cy transition-colors">
                 <Link2 className="w-3 h-3" />再加一个链接
               </button>
             </div>
@@ -316,18 +316,18 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
 
           {/* Currency + Price */}
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">网红报价</label>
+            <label className="text-[11px] text-faint mb-1 block">网红报价</label>
             <div className="flex items-center gap-2">
               <select value={formCurrency} onChange={(e) => setFormCurrency(e.target.value)}
-                className="w-28 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-2 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+                className="w-28 bg-base border border-line rounded-xl px-2 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 {CURRENCY_OPTIONS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
               <input type="number" value={formLocalPrice} onChange={(e) => setFormLocalPrice(e.target.value)}
                 placeholder={`输入${formCurrency}金额`}
-                className="flex-1 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30" />
+                className="flex-1 bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
             </div>
             {usdPreview !== null && usdPreview > 0 && (
-              <p className="text-[10px] text-[#ccff00] mt-1">
+              <p className="text-[10px] text-brand mt-1">
                 ≈ ${usdPreview.toLocaleString()} USD
               </p>
             )}
@@ -335,11 +335,11 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
 
           {/* Cooperation Types */}
           <div>
-            <label className="text-[11px] text-[#666] mb-2 block">合作方式（可多选）</label>
+            <label className="text-[11px] text-faint mb-2 block">合作方式（可多选）</label>
             <div className="space-y-2">
               {Object.entries(COOP_TYPE_OPTIONS).map(([platform, types]) => (
-                <div key={platform} className="p-2 rounded-lg bg-white/[0.02]">
-                  <p className="text-[10px] font-medium text-white mb-1.5">{platform}</p>
+                <div key={platform} className="p-2 rounded-lg bg-hover">
+                  <p className="text-[10px] font-medium text-content mb-1.5">{platform}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {types.map((type) => {
                       const selected = isCoopSelected(platform, type);
@@ -347,8 +347,8 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
                         <button key={type} type="button" onClick={() => toggleCoopType(platform, type)}
                           className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all border ${
                             selected
-                              ? "bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30"
-                              : "bg-white/[0.03] text-[#888] border-white/[0.06] hover:bg-white/[0.06]"
+                              ? "bg-lime/15 text-brand border-brand/30"
+                              : "bg-hover text-sub border-line hover:bg-hover"
                           }`}>
                           {selected && "✓ "}{type}
                         </button>
@@ -362,15 +362,15 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
 
           {/* Bio (备注) */}
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">备注</label>
+            <label className="text-[11px] text-faint mb-1 block">备注</label>
             <textarea value={formBio} onChange={(e) => setFormBio(e.target.value)} placeholder="合作备注..."
-              rows={2} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+              rows={2} className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-[#666] text-sm font-medium hover:bg-white/[0.03] transition-all">
+              className="flex-1 py-2.5 rounded-xl border border-line text-faint text-sm font-medium hover:bg-hover transition-all">
               取消
             </button>
             <button type="submit" disabled={createMutation.isPending}

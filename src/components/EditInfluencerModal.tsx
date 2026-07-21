@@ -24,8 +24,8 @@ interface LinkRow {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 pt-2">
-      <span className="text-[11px] font-bold text-[#ccff00] tracking-wider">{children}</span>
-      <div className="flex-1 h-px bg-white/[0.06]" />
+      <span className="text-[11px] font-bold text-brand tracking-wider">{children}</span>
+      <div className="flex-1 h-px bg-hover" />
     </div>
   );
 }
@@ -102,12 +102,12 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-[520px] mx-4 max-h-[85vh] overflow-y-auto bg-[#141414] border border-white/[0.06] rounded-2xl shadow-2xl p-6 space-y-4">
+      <div className="relative w-full max-w-[520px] mx-4 max-h-[85vh] overflow-y-auto bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-[#ccff00]" />编辑资料
+          <h2 className="text-lg font-black text-content flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-brand" />编辑资料
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.1] transition-all">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -123,14 +123,14 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">名称 *</label>
+              <label className="text-[11px] text-faint mb-1 block">名称 *</label>
               <input value={formName} onChange={(e) => setFormName(e.target.value)} required
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30" />
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30" />
             </div>
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">平台</label>
+              <label className="text-[11px] text-faint mb-1 block">平台</label>
               <select value={formPlatform} onChange={(e) => setFormPlatform(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 <option value="instagram">Instagram</option>
                 <option value="tiktok">TikTok</option>
                 <option value="xiaohongshu">小红书</option>
@@ -140,38 +140,38 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
           </div>
 
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">领域</label>
+            <label className="text-[11px] text-faint mb-1 block">领域</label>
             <select value={formNiche} onChange={(e) => setFormNiche(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+              className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
               {Object.entries(allNiches).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">性别</label>
+              <label className="text-[11px] text-faint mb-1 block">性别</label>
               <select value={formGender} onChange={(e) => setFormGender(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/30">
+                className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content focus:outline-none focus:border-brand/30">
                 <option value="other">其他</option>
                 <option value="male">男</option>
                 <option value="female">女</option>
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-[#666] mb-1 block">国家/地区</label>
+              <label className="text-[11px] text-faint mb-1 block">国家/地区</label>
               <CountrySelect value={formLocation} onChange={setFormLocation} />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">主页链接（可添加多个）</label>
+            <label className="text-[11px] text-faint mb-1 block">主页链接（可添加多个）</label>
             <div className="space-y-2">
               {links.map((link, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <select
                     value={link.platform}
                     onChange={(e) => updateLink(idx, { platform: e.target.value })}
-                    className="w-28 flex-shrink-0 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-2 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]/30"
+                    className="w-28 flex-shrink-0 bg-base border border-line rounded-xl px-2 py-2 text-xs text-content focus:outline-none focus:border-brand/30"
                   >
                     {LINK_PLATFORM_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -180,7 +180,7 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
                     value={link.url}
                     onChange={(e) => updateLink(idx, { url: e.target.value })}
                     placeholder="https://..."
-                    className="flex-1 bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30"
+                    className="flex-1 bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30"
                   />
                   {links.length > 1 && (
                     <button type="button" onClick={() => removeLinkRow(idx)}
@@ -191,7 +191,7 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
                 </div>
               ))}
               <button type="button" onClick={addLinkRow}
-                className="flex items-center gap-1.5 text-[11px] text-[#06b6d4]/70 hover:text-[#06b6d4] transition-colors">
+                className="flex items-center gap-1.5 text-[11px] text-cy/70 hover:text-cy transition-colors">
                 <Link2 className="w-3 h-3" />再加一个链接
               </button>
             </div>
@@ -200,15 +200,15 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
           <SectionTitle>合作详情</SectionTitle>
 
           <div>
-            <label className="text-[11px] text-[#666] mb-1 block">备注</label>
+            <label className="text-[11px] text-faint mb-1 block">备注</label>
             <textarea value={formBio} onChange={(e) => setFormBio(e.target.value)} placeholder="合作备注..."
-              rows={3} className="w-full bg-[#0a0a0a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-[#ccff00]/30 resize-none" />
+              rows={3} className="w-full bg-base border border-line rounded-xl px-3 py-2 text-sm text-content placeholder:text-faint focus:outline-none focus:border-brand/30 resize-none" />
           </div>
-          <p className="text-[10px] text-[#555]">报价请通过「谈价记录」更新，合作方式在卡片详情的合作区块编辑。</p>
+          <p className="text-[10px] text-faint">报价请通过「谈价记录」更新，合作方式在卡片详情的合作区块编辑。</p>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-[#666] text-sm font-medium hover:bg-white/[0.03] transition-all">
+              className="flex-1 py-2.5 rounded-xl border border-line text-faint text-sm font-medium hover:bg-hover transition-all">
               取消
             </button>
             <button type="submit" disabled={updateMutation.isPending}
