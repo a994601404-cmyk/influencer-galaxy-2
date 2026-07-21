@@ -73,9 +73,14 @@ export const influencerRouter = createRouter({
       // Trashed cards (hidden=2) are invisible to everyone in the main list
       conditions.push(ne(influencers.hidden, 2));
 
-      // Non-admin users only see non-hidden cards
+      // Non-admin users only see their OWN cards (server-side isolation);
+      // unauthenticated callers see nothing. Admin sees everything.
       if (!isAdmin) {
         conditions.push(eq(influencers.hidden, 0));
+        if (!ctx.user?.unionId) {
+          return { items: [], total: 0 };
+        }
+        conditions.push(eq(influencers.createdByUnionId, ctx.user.unionId));
       }
 
       if (input?.platform && input.platform !== "all") {
@@ -132,6 +137,8 @@ export const influencerRouter = createRouter({
       if (row.hidden === 2) return null;
       // Non-admin cannot see hidden cards
       if (row.hidden === 1 && ctx.user?.role !== "admin") return null;
+      // Non-admin can only view their own cards
+      if (ctx.user?.role !== "admin" && row.createdByUnionId !== ctx.user?.unionId) return null;
       return toDbRecord(row);
     }),
 
