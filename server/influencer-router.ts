@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createRouter, publicQuery, authedQuery, adminQuery } from "./middleware.js";
 import { getDb, getRawConnection } from "./queries/connection.js";
 import { influencers, negotiationRecords } from "../db/schema.js";
-import { eq, like, and, desc, sql } from "drizzle-orm";
+import { eq, ne, like, and, desc, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification, getAdminUnionIds, getBeijingTimeFull } from "./notification-router.js";
 
@@ -70,6 +70,9 @@ export const influencerRouter = createRouter({
 
       const conditions: any[] = [];
 
+      // Trashed cards (hidden=2) are invisible to everyone in the main list
+      conditions.push(ne(influencers.hidden, 2));
+
       // Non-admin users only see non-hidden cards
       if (!isAdmin) {
         conditions.push(eq(influencers.hidden, 0));
@@ -125,6 +128,8 @@ export const influencerRouter = createRouter({
         .limit(1);
       const row = result[0];
       if (!row) return null;
+      // Trashed cards are not viewable (restore them from the recycle bin first)
+      if (row.hidden === 2) return null;
       // Non-admin cannot see hidden cards
       if (row.hidden === 1 && ctx.user?.role !== "admin") return null;
       return toDbRecord(row);
@@ -249,7 +254,7 @@ export const influencerRouter = createRouter({
       return toDbRecord(row[0]);
     }),
 
-  // ─── Delete ────────────────────────────────────────────────
+  // ─── Delete (soft → recycle bin) ───────────────────────────
   delete: authedQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
@@ -260,7 +265,78 @@ export const influencerRouter = createRouter({
       if (ctx.user.role !== "admin" && existing[0].createdByUnionId !== ctx.user.unionId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "无权删除此网红" });
       }
+      await db.update(influencers).set({
+        hidden: 2,
+        deletedAt: getBeijingTimeFull(),
+        deletedByUnionId: ctx.user.unionId,
+      }).where(eq(influencers.id, input.id));
+      return { success: true };
+    }),
+
+  // ─── Recycle Bin ───────────────────────────────────────────
+  // Admin sees every trashed card; users see only cards they trashed.
+  trashList: authedQuery
+    .query(async ({ ctx }) => {
+      const db = getDb();
+      const conditions: any[] = [eq(influencers.hidden, 2)];
+      if (ctx.user.role !== "admin") {
+        conditions.push(eq(influencers.deletedByUnionId, ctx.user.unionId));
+      }
+      const rows = await db
+        .select()
+        .from(influencers)
+        .where(and(...conditions))
+        .orderBy(desc(influencers.deletedAt));
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        handle: row.handle,
+        platform: row.platform,
+        avatar: row.avatar,
+        niche: row.niche,
+        location: row.location,
+        deletedAt: row.deletedAt,
+        deletedByUnionId: row.deletedByUnionId,
+        createdByUnionId: row.createdByUnionId,
+      }));
+    }),
+
+  restore: authedQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const existing = await db.select().from(influencers).where(eq(influencers.id, input.id)).limit(1);
+      if (!existing[0] || existing[0].hidden !== 2) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "垃圾箱中不存在此网红" });
+      }
+      if (ctx.user.role !== "admin" && existing[0].deletedByUnionId !== ctx.user.unionId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "无权恢复此网红" });
+      }
+      await db.update(influencers).set({
+        hidden: 0,
+        deletedAt: null,
+        deletedByUnionId: null,
+      }).where(eq(influencers.id, input.id));
+      return { success: true };
+    }),
+
+  destroy: authedQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const existing = await db.select().from(influencers).where(eq(influencers.id, input.id)).limit(1);
+      if (!existing[0] || existing[0].hidden !== 2) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "垃圾箱中不存在此网红" });
+      }
+      if (ctx.user.role !== "admin" && existing[0].deletedByUnionId !== ctx.user.unionId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "无权彻底删除此网红" });
+      }
       await db.delete(influencers).where(eq(influencers.id, input.id));
+      // Clean up category assignments so no orphan rows remain
+      try {
+        const conn = await getRawConnection();
+        await conn.execute(`DELETE FROM cardCategoryItems WHERE influencerId = ?`, [input.id]);
+      } catch { /* ignore cleanup failure */ }
       return { success: true };
     }),
 

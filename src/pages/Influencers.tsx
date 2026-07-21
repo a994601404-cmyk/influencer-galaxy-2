@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { getNicheLabel } from "@/lib/niche-map";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "react-router";
 import {
@@ -7,10 +6,14 @@ import {
   useDeleteInfluencer,
   useHideInfluencer,
   useUnhideInfluencer,
+  useTrashList,
+  useRestoreInfluencer,
+  useDestroyInfluencer,
   useUserList,
   useNegotiationListAll,
   useCardCategoryList,
   useCreateCardCategory,
+  useUpdateCardCategory,
   useDeleteCardCategory,
   useToggleCategoryExpand,
   useMoveCardToCategory,
@@ -23,9 +26,8 @@ import InfluencerDetail from "@/components/InfluencerDetail";
 import InfluencerCard from "@/components/InfluencerCard";
 import AddInfluencerModal from "@/components/AddInfluencerModal";
 import {
-  Search, Plus, Users, Shield, UserCircle, EyeOff, Settings,
-  Crown, User, ChevronDown, ChevronRight, FolderPlus, Trash2,
-  Pin, Pencil, Check, X,
+  Search, Plus, Users, Settings, ChevronDown, ChevronRight, FolderPlus,
+  Trash2, Pencil, Check, X, Archive, RotateCcw, ArrowUp, ArrowDown,
 } from "lucide-react";
 
 function useCreatorNameMap() {
@@ -39,6 +41,10 @@ function useCreatorNameMap() {
   }, [users]);
 }
 
+const platformLabels: Record<string, string> = {
+  instagram: "Instagram", tiktok: "TikTok", xiaohongshu: "小红书", douyin: "抖音",
+};
+
 export default function Influencers() {
   const { user, isAuthenticated, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,11 +55,19 @@ export default function Influencers() {
   const [selectedInfluencer, setSelectedInfluencer] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
+
+  // Batch selection mode: influencerId → categoryId it was picked from
+  const [batchMode, setBatchMode] = useState(false);
+  const [selected, setSelected] = useState<Map<number, number>>(new Map());
+  const [batchTargetCat, setBatchTargetCat] = useState("");
+
+  // Recycle bin
+  const [trashOpen, setTrashOpen] = useState(false);
 
   // Card categories
   const { data: categoryData } = useCardCategoryList();
   const createCategoryMut = useCreateCardCategory();
+  const updateCategoryMut = useUpdateCardCategory();
   const deleteCategoryMut = useDeleteCardCategory();
   const toggleExpandMut = useToggleCategoryExpand();
   const moveCardMut = useMoveCardToCategory();
@@ -67,17 +81,14 @@ export default function Influencers() {
   const [editingCatId, setEditingCatId] = useState<number|null>(null);
   const [editCatName, setEditCatName] = useState("");
 
-  // Move card state
-  const [moveMenuOpen, setMoveMenuOpen] = useState<number|null>(null);
-
-  // Initialize default categories (create if "网红库" doesn't exist)
+  // Initialize default categories (frontend fallback; the backend also
+  // creates them server-side on first list)
   useEffect(() => {
     if (!user?.unionId) return;
     if (!categoryData) return;
     const cats = categoryData.categories || [];
     const hasDefault = cats.some((c: any) => c.name === "网红库");
     if (!hasDefault) {
-      // Create default categories
       const defaults = ["对接中", "已发布", "网红库"];
       defaults.forEach((name) => {
         const exists = cats.some((c: any) => c.name === name);
@@ -95,6 +106,9 @@ export default function Influencers() {
   const { mutate: deleteInf } = useDeleteInfluencer();
   const { mutate: hideInf } = useHideInfluencer();
   const { mutate: unhideInf } = useUnhideInfluencer();
+  const { data: trashData } = useTrashList();
+  const { mutate: restoreInf } = useRestoreInfluencer();
+  const { mutate: destroyInf } = useDestroyInfluencer();
 
   const currentUnionId = user?.unionId ?? "";
 
@@ -143,24 +157,6 @@ export default function Influencers() {
     influencersWithPrices.forEach((inf: any) => map.set(inf.id, inf));
     return map;
   }, [influencersWithPrices]);
-
-  // Debug: expose data to window for inspection
-  useEffect(() => {
-    if (categoryData) {
-      const items = categoryData.items || [];
-      const firstItem = items[0];
-      (window as any).__debug = {
-        categoryCount: (categoryData.categories || []).length,
-        itemCount: items.length,
-        firstItemInfluencer: firstItem?.influencer,
-        firstItemCategoryId: firstItem?.categoryId,
-        influencerMapSize: influencerMap.size,
-        user: (user as any)?.unionId || user?.email,
-      };
-      console.log("[DEBUG] categories:", (categoryData.categories || []).length, "items:", items.length);
-      if (firstItem) console.log("[DEBUG] first item influencer:", firstItem.influencer);
-    }
-  }, [categoryData, influencerMap, user]);
 
   // Group items by category
   // Also auto-assign uncategorized influencers to "网红库" (frontend fallback)
@@ -230,20 +226,89 @@ export default function Influencers() {
     });
   }, [groupedCategories, search, platform, niche]);
 
+  // Sort buttons only make sense when no filter is hiding neighbors
+  const filtersActive = search.trim() !== "" || platform !== "all" || niche !== "all";
+
   // Count visible items
   const visibleCount = useMemo(() => {
     return filteredCategories.reduce((sum: number, cat: any) => sum + (cat.items || []).length, 0);
   }, [filteredCategories]);
 
-  const handleDelete = (id: number) => { if (confirm("确认删除此网红?")) deleteInf(id); };
-  const handleHide = (id: number) => hideInf(id);
-  const handleUnhide = (id: number) => unhideInf(id);
+  const handleDelete = (id: number) => {
+    if (confirm("确认删除此网红? 卡片会进入垃圾箱,可恢复。")) deleteInf({ id });
+  };
+  const handleHide = (id: number) => hideInf({ id });
+  const handleUnhide = (id: number) => unhideInf({ id });
 
   // Move card handler
   const handleMoveCard = useCallback((influencerId: number, fromCategoryId: number, toCategoryId: number) => {
     if (fromCategoryId === toCategoryId) return;
     moveCardMut.mutate({ influencerId, fromCategoryId, toCategoryId });
   }, [moveCardMut]);
+
+  // Manual card ordering within a category (swap with neighbor, persist all)
+  const handleCardReorder = useCallback((cat: any, index: number, dir: -1 | 1) => {
+    const items = [...(cat.items || [])];
+    const target = index + dir;
+    if (target < 0 || target >= items.length) return;
+    [items[index], items[target]] = [items[target], items[index]];
+    saveCardOrderMut.mutate({
+      categoryId: cat.id,
+      orders: items.map((item: any, i: number) => ({ influencerId: item.influencerId, sortOrder: i })),
+    });
+  }, [saveCardOrderMut]);
+
+  // Manual category ordering
+  const handleCategoryReorder = useCallback((catId: number, dir: -1 | 1) => {
+    const cats = [...groupedCategories];
+    const index = cats.findIndex((c: any) => c.id === catId);
+    const target = index + dir;
+    if (index < 0 || target < 0 || target >= cats.length) return;
+    [cats[index], cats[target]] = [cats[target], cats[index]];
+    saveCatOrderMut.mutate({
+      orders: cats.map((c: any, i: number) => ({ id: c.id, sortOrder: i })),
+    });
+  }, [groupedCategories, saveCatOrderMut]);
+
+  // ── Batch mode helpers ──
+  const toggleSelect = useCallback((influencerId: number, categoryId: number) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      if (next.has(influencerId)) next.delete(influencerId);
+      else next.set(influencerId, categoryId);
+      return next;
+    });
+  }, []);
+
+  const exitBatchMode = useCallback(() => {
+    setBatchMode(false);
+    setSelected(new Map());
+    setBatchTargetCat("");
+  }, []);
+
+  const batchDelete = useCallback(() => {
+    if (selected.size === 0) return;
+    if (!confirm(`确认删除选中的 ${selected.size} 个网红? 卡片会进入垃圾箱,可恢复。`)) return;
+    selected.forEach((_, infId) => deleteInf({ id: infId }));
+    exitBatchMode();
+  }, [selected, deleteInf, exitBatchMode]);
+
+  const batchHide = useCallback(() => {
+    if (selected.size === 0) return;
+    selected.forEach((_, infId) => hideInf({ id: infId }));
+    exitBatchMode();
+  }, [selected, hideInf, exitBatchMode]);
+
+  const batchMove = useCallback(() => {
+    const targetId = Number(batchTargetCat);
+    if (!targetId || selected.size === 0) return;
+    selected.forEach((fromCatId, infId) => {
+      if (fromCatId !== targetId) {
+        moveCardMut.mutate({ influencerId: infId, fromCategoryId: fromCatId, toCategoryId: targetId });
+      }
+    });
+    exitBatchMode();
+  }, [selected, batchTargetCat, moveCardMut, exitBatchMode]);
 
   // Creator map for admin filter
   const creatorMap = useCreatorNameMap();
@@ -279,6 +344,17 @@ export default function Influencers() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTrashOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-[#888] hover:text-white transition-all text-sm"
+          >
+            <Archive className="w-4 h-4" />垃圾箱
+            {(trashData || []).length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400">
+                {(trashData || []).length}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setAddOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ccff00] text-black font-semibold hover:bg-[#b8e600] transition-all"
@@ -340,23 +416,20 @@ export default function Influencers() {
           </select>
         )}
         <button
-          onClick={() => setAdminOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-[#888] hover:text-white transition-all text-sm"
+          onClick={() => (batchMode ? exitBatchMode() : setBatchMode(true))}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all text-sm ${
+            batchMode
+              ? "bg-[#ccff00]/15 border-[#ccff00]/30 text-[#ccff00]"
+              : "bg-[#111] border-white/[0.06] text-[#888] hover:text-white"
+          }`}
         >
-          <Settings className="w-4 h-4" />批量管理
+          <Settings className="w-4 h-4" />{batchMode ? "退出批量" : "批量管理"}
         </button>
       </div>
 
-      {/* Debug info */}
-      {categoryData && (
-        <div className="text-xs text-[#666] bg-[#111] p-2 rounded">
-          DEBUG: categories={(categoryData.categories || []).length}, items={(categoryData.items || []).length}
-        </div>
-      )}
-
       {/* Categories */}
       <div className="space-y-4">
-        {filteredCategories.map((cat: any) => (
+        {filteredCategories.map((cat: any, catIndex: number) => (
           <div
             key={cat.id}
             className="rounded-xl border border-white/[0.06] bg-[#0a0a0a]"
@@ -377,10 +450,17 @@ export default function Influencers() {
                       onChange={(e) => setEditCatName(e.target.value)}
                       className="px-2 py-1 rounded bg-[#111] border border-white/[0.1] text-white text-sm w-32 focus:outline-none focus:border-[#ccff00]/30"
                       autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && editCatName.trim()) {
+                          updateCategoryMut.mutate({ id: cat.id, name: editCatName.trim() });
+                          setEditingCatId(null);
+                        }
+                        if (e.key === "Escape") setEditingCatId(null);
+                      }}
                     />
                     <button onClick={() => {
                       if (editCatName.trim()) {
-                        // Need update mutation - use create as placeholder then delete old
+                        updateCategoryMut.mutate({ id: cat.id, name: editCatName.trim() });
                       }
                       setEditingCatId(null);
                     }} className="text-[#ccff00]"><Check className="w-3 h-3" /></button>
@@ -392,6 +472,22 @@ export default function Influencers() {
                 <span className="text-xs text-[#666]">({(cat.items || []).length})</span>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleCategoryReorder(cat.id, -1)}
+                  disabled={catIndex === 0}
+                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-white transition-colors disabled:opacity-20 disabled:hover:text-[#555]"
+                  title="上移分类"
+                >
+                  <ArrowUp className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleCategoryReorder(cat.id, 1)}
+                  disabled={catIndex === filteredCategories.length - 1}
+                  className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-white transition-colors disabled:opacity-20 disabled:hover:text-[#555]"
+                  title="下移分类"
+                >
+                  <ArrowDown className="w-3 h-3" />
+                </button>
                 <button
                   onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.name); }}
                   className="w-6 h-6 rounded flex items-center justify-center text-[#555] hover:text-[#ccff00] transition-colors"
@@ -416,7 +512,7 @@ export default function Influencers() {
             {/* Cards grid */}
             {cat.isExpanded && (
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {cat.items.map((item: any) => (
+                {cat.items.map((item: any, itemIndex: number) => (
                   <InfluencerCard
                     key={item.id}
                     inf={item.influencer}
@@ -426,19 +522,24 @@ export default function Influencers() {
                     isPinned={item.isPinned === 1}
                     categories={filteredCategories}
                     currentCategoryId={cat.id}
+                    batchMode={batchMode}
+                    checked={selected.has(item.influencerId)}
+                    onToggleSelect={() => toggleSelect(item.influencerId, cat.id)}
                     onSelect={() => {
                       setSelectedInfluencer(item.influencer);
                       setDetailOpen(true);
                     }}
                     onToggleHide={() => item.influencer.hidden ? handleUnhide(item.influencerId) : handleHide(item.influencerId)}
                     onDelete={() => handleDelete(item.influencerId)}
-                    onTogglePin={() => togglePinMut.mutate({ itemId: item.id, categoryId: cat.id })}
+                    onTogglePin={() => togglePinMut.mutate({ influencerId: item.influencerId, categoryId: cat.id })}
                     onMoveCategory={(targetId: number) => handleMoveCard(item.influencerId, cat.id, targetId)}
+                    onMoveForward={!batchMode && !filtersActive && itemIndex > 0 ? () => handleCardReorder(cat, itemIndex, -1) : undefined}
+                    onMoveBackward={!batchMode && !filtersActive && itemIndex < cat.items.length - 1 ? () => handleCardReorder(cat, itemIndex, 1) : undefined}
                   />
                 ))}
                 {(cat.items || []).length === 0 && (
                   <div className="col-span-full text-center py-8 text-[#444] text-sm">
-                    拖拽卡片到此处
+                    暂无卡片
                   </div>
                 )}
               </div>
@@ -504,6 +605,109 @@ export default function Influencers() {
         </div>
       )}
 
+      {/* Batch action bar */}
+      {batchMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 bg-[#141414] border border-white/[0.1] rounded-xl shadow-2xl px-4 py-2.5">
+          <span className="text-xs text-[#888]">已选 <span className="text-[#ccff00] font-bold">{selected.size}</span> 项</span>
+          <select
+            value={batchTargetCat}
+            onChange={(e) => setBatchTargetCat(e.target.value)}
+            className="px-2 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08] text-white text-xs focus:outline-none focus:border-[#ccff00]/30"
+          >
+            <option value="">移动到分类…</option>
+            {groupedCategories.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={batchMove}
+            disabled={!batchTargetCat || selected.size === 0}
+            className="px-3 py-1.5 rounded-lg bg-[#06b6d4]/15 text-[#06b6d4] text-xs font-medium hover:bg-[#06b6d4]/25 transition-all disabled:opacity-30"
+          >
+            移动
+          </button>
+          {isAdmin && (
+            <button
+              onClick={batchHide}
+              disabled={selected.size === 0}
+              className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-[#aaa] text-xs font-medium hover:bg-white/[0.1] transition-all disabled:opacity-30"
+            >
+              隐藏
+            </button>
+          )}
+          <button
+            onClick={batchDelete}
+            disabled={selected.size === 0}
+            className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-medium hover:bg-red-500/25 transition-all disabled:opacity-30"
+          >
+            删除
+          </button>
+          <button
+            onClick={exitBatchMode}
+            className="px-3 py-1.5 rounded-lg text-[#666] text-xs hover:text-white transition-all"
+          >
+            取消
+          </button>
+        </div>
+      )}
+
+      {/* Recycle bin modal */}
+      {trashOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setTrashOpen(false)} />
+          <div className="relative w-full max-w-[520px] mx-4 max-h-[80vh] overflow-y-auto bg-[#141414] border border-white/[0.06] rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black text-white flex items-center gap-2">
+                <Archive className="w-5 h-5 text-[#ccff00]" />垃圾箱
+              </h2>
+              <button onClick={() => setTrashOpen(false)} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.1] transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-[11px] text-[#666] mb-4">
+              {isAdmin ? "被删除的网红按删除时间排列,可恢复或彻底删除。" : "你删除的网红按删除时间排列,可恢复或彻底删除。"}
+            </p>
+            {(trashData || []).length === 0 ? (
+              <div className="text-center py-10 text-[#444] text-sm">垃圾箱为空</div>
+            ) : (
+              <div className="space-y-2">
+                {(trashData || []).map((item: any) => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#0a0a0a] border border-white/[0.04]">
+                    <img
+                      src={item.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.handle}`}
+                      alt={item.name}
+                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{item.name}</p>
+                      <p className="text-[10px] text-[#666]">
+                        {platformLabels[item.platform] || item.platform} · 删除于 {item.deletedAt || "—"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => restoreInf({ id: item.id })}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#ccff00]/10 text-[#ccff00] text-[11px] font-medium hover:bg-[#ccff00]/20 transition-all"
+                    >
+                      <RotateCcw className="w-3 h-3" />恢复
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`彻底删除「${item.name}」? 此操作不可撤销。`)) {
+                          destroyInf({ id: item.id });
+                        }
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-[11px] font-medium hover:bg-red-500/20 transition-all"
+                    >
+                      <Trash2 className="w-3 h-3" />彻底删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Detail */}
       {selectedInfluencer && (
         <InfluencerDetail
@@ -532,8 +736,6 @@ export default function Influencers() {
           }
         }}
       />
-
-
     </div>
   );
 }

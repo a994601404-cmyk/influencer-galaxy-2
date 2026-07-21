@@ -1,10 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
+import { parseProfileLinks } from "@/lib/profile-links";
 import { getActiveSignals, subscribeToSignals } from "@/lib/signal-light";
 import { useState, useEffect } from "react";
 import {
   ExternalLink, Eye, EyeOff, Trash2, MapPin, Hash, Pin, ArrowRightLeft,
+  ChevronLeft, ChevronRight, Check,
 } from "lucide-react";
 
 const platformLabels: Record<string, string> = {
@@ -35,6 +37,13 @@ interface InfluencerCardProps {
   onDelete: () => void;
   onTogglePin: () => void;
   onMoveCategory?: (targetCategoryId: number) => void;
+  // Batch selection mode
+  batchMode?: boolean;
+  checked?: boolean;
+  onToggleSelect?: () => void;
+  // Manual ordering within the category
+  onMoveForward?: () => void;
+  onMoveBackward?: () => void;
 }
 
 function SignalDot({ type }: { type: string }) {
@@ -49,6 +58,7 @@ export default function InfluencerCard({
   inf, isSelected, isAdmin, canEdit, isPinned,
   categories, currentCategoryId,
   onSelect, onToggleHide, onDelete, onTogglePin, onMoveCategory,
+  batchMode, checked, onToggleSelect, onMoveForward, onMoveBackward,
 }: InfluencerCardProps) {
   const { user } = useAuth();
   const [signals, setSignals] = useState<string[]>([]);
@@ -68,16 +78,47 @@ export default function InfluencerCard({
   if (!inf || !inf.id) return null;
   const hasAnySignal = signals.length > 0;
   const coopItems = parseCoopTypes(inf.coopTypes);
+  const profileLinks = parseProfileLinks(inf.profileUrl);
 
   return (
     <div
-      onClick={onSelect}
+      onClick={batchMode ? onToggleSelect : onSelect}
       className={`card-surface p-4 cursor-pointer transition-all relative ${
-        isSelected ? "border-[#ccff00]/30 bg-[#ccff00]/[0.02]" : ""
-      } ${isPinned ? "card-pinned" : ""}`}
+        isSelected && !batchMode ? "border-[#ccff00]/30 bg-[#ccff00]/[0.02]" : ""
+      } ${isPinned ? "card-pinned" : ""} ${batchMode && checked ? "border-[#ccff00]/50 bg-[#ccff00]/[0.04]" : ""}`}
     >
+      {/* Batch-mode checkbox */}
+      {batchMode && (
+        <div
+          className={`absolute top-3 left-3 w-5 h-5 rounded-md border flex items-center justify-center z-20 transition-all ${
+            checked ? "bg-[#ccff00] border-[#ccff00]" : "bg-black/50 border-white/[0.15]"
+          }`}
+        >
+          {checked && <Check className="w-3.5 h-3.5 text-black" />}
+        </div>
+      )}
+
       {/* Top-right: Pin + Signal light + Move + Actions */}
+      {!batchMode && (
       <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+        {onMoveForward && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveForward(); }}
+            className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+            title="前移"
+          >
+            <ChevronLeft className="w-3 h-3" />
+          </button>
+        )}
+        {onMoveBackward && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveBackward(); }}
+            className="w-6 h-6 rounded-md bg-white/[0.04] flex items-center justify-center text-[#666] hover:text-white hover:bg-white/[0.08] transition-all"
+            title="后移"
+          >
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
           className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
@@ -146,13 +187,14 @@ export default function InfluencerCard({
           </button>
         )}
       </div>
+      )}
 
       {/* Main content */}
       <div className="flex gap-3">
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}
-          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]"
+          className={`w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06] ${batchMode ? "ml-6" : ""}`}
         />
         <div className="flex-1 min-w-0 pr-20">
           <h3 className="text-sm font-bold text-white truncate">{inf.name}</h3>
@@ -216,16 +258,21 @@ export default function InfluencerCard({
         <p className="text-[10px] text-[#666] mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
       )}
 
-      {inf.profileUrl && (
-        <a
-          href={inf.profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1 mt-2 text-[10px] text-[#06b6d4]/60 hover:text-[#06b6d4] transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" />主页
-        </a>
+      {profileLinks.length > 0 && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+          {profileLinks.map((link, i) => (
+            <a
+              key={`${link.url}-${i}`}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[10px] text-[#06b6d4]/60 hover:text-[#06b6d4] transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />{link.platform}
+            </a>
+          ))}
+        </div>
       )}
     </div>
   );

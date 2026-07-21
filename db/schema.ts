@@ -60,7 +60,9 @@ export const influencers = mysqlTable("influencers", {
   topPosts: text("topPosts"),
   // Ownership & visibility
   createdByUnionId: varchar("createdByUnionId", { length: 320 }),
-  hidden: int("hidden").default(0), // 0 = visible, 1 = hidden
+  hidden: int("hidden").default(0), // 0 = visible, 1 = hidden by admin, 2 = trashed (recycle bin)
+  deletedAt: varchar("deletedAt", { length: 20 }), // YYYY-MM-DD HH:mm:ss, set when trashed
+  deletedByUnionId: varchar("deletedByUnionId", { length: 320 }), // who trashed it
   isTest: int("isTest").default(0), // 0 = production, 1 = test data
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),

@@ -11,10 +11,26 @@ export const cardCategoryRouter = createRouter({
       const isAdmin = ctx.user.role === "admin";
 
       // Get categories for this user
-      const [catRows] = await conn.execute(
+      let [catRows] = await conn.execute(
         `SELECT * FROM cardCategories WHERE userUnionId = ? ORDER BY sortOrder ASC`,
         [unionId]
       );
+
+      // First-time users (or users whose categories were wiped) get the three
+      // default categories created server-side to avoid frontend races.
+      if ((catRows as any[]).length === 0) {
+        const defaults = ["对接中", "已发布", "网红库"];
+        for (let i = 0; i < defaults.length; i++) {
+          await conn.execute(
+            `INSERT INTO cardCategories (userUnionId, name, sortOrder, isExpanded) VALUES (?, ?, ?, 1)`,
+            [unionId, defaults[i], i]
+          );
+        }
+        [catRows] = await conn.execute(
+          `SELECT * FROM cardCategories WHERE userUnionId = ? ORDER BY sortOrder ASC`,
+          [unionId]
+        );
+      }
       const categories = catRows as any[];
 
       // Get all items with influencer data
@@ -144,35 +160,63 @@ export const cardCategoryRouter = createRouter({
       );
       const newOrder = ((rows as any[])[0]?.maxOrder ?? -1) + 1;
 
-      // Move card (update categoryId, keep pin status)
-      await conn.execute(
+      // Move card (update categoryId, keep pin status). If the card has no
+      // row yet (uncategorized fallback), create it in the target category.
+      const [updateRes] = await conn.execute(
         `UPDATE cardCategoryItems SET categoryId = ?, sortOrder = ? WHERE influencerId = ? AND categoryId = ?`,
         [input.toCategoryId, newOrder, input.influencerId, input.fromCategoryId]
       );
+      if ((updateRes as any).affectedRows === 0) {
+        await conn.execute(
+          `INSERT INTO cardCategoryItems (categoryId, influencerId, sortOrder, isPinned) VALUES (?, ?, ?, 0)`,
+          [input.toCategoryId, input.influencerId, newOrder]
+        );
+      }
       return { success: true };
     }),
 
-  // Toggle pin within a category (no limit on pin count)
+  // Toggle pin within a category (no limit on pin count).
+  // Keyed by influencerId + categoryId so it also works for cards that
+  // have no cardCategoryItems row yet — the row is created on first pin.
   togglePin: authedQuery
     .input(z.object({
-      itemId: z.number(),
+      influencerId: z.number(),
       categoryId: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
-      // Get current pin state
+      // Ensure the category belongs to the current user
+      const [catRows] = await conn.execute(
+        `SELECT id FROM cardCategories WHERE id = ? AND userUnionId = ?`,
+        [input.categoryId, ctx.user.unionId]
+      );
+      if ((catRows as any[]).length === 0) {
+        throw new Error("分类不存在");
+      }
       const [rows] = await conn.execute(
-        `SELECT isPinned FROM cardCategoryItems WHERE id = ? AND categoryId IN (SELECT id FROM cardCategories WHERE userUnionId = ?)`,
-        [input.itemId, ctx.user.unionId]
+        `SELECT id, isPinned FROM cardCategoryItems WHERE influencerId = ? AND categoryId = ?`,
+        [input.influencerId, input.categoryId]
       );
       const existing = (rows as any[])[0];
-      const newPinned = existing ? (existing.isPinned ? 0 : 1) : 1;
-
-      await conn.execute(
-        `UPDATE cardCategoryItems SET isPinned = ? WHERE id = ?`,
-        [newPinned, input.itemId]
+      if (existing) {
+        const newPinned = existing.isPinned ? 0 : 1;
+        await conn.execute(
+          `UPDATE cardCategoryItems SET isPinned = ? WHERE id = ?`,
+          [newPinned, existing.id]
+        );
+        return { success: true, isPinned: newPinned === 1 };
+      }
+      // No row yet — create it directly in pinned state
+      const [maxRows] = await conn.execute(
+        `SELECT MAX(sortOrder) as maxOrder FROM cardCategoryItems WHERE categoryId = ?`,
+        [input.categoryId]
       );
-      return { success: true, isPinned: newPinned === 1 };
+      const newOrder = ((maxRows as any[])[0]?.maxOrder ?? -1) + 1;
+      await conn.execute(
+        `INSERT INTO cardCategoryItems (categoryId, influencerId, sortOrder, isPinned) VALUES (?, ?, ?, 1)`,
+        [input.categoryId, input.influencerId, newOrder]
+      );
+      return { success: true, isPinned: true };
     }),
 
   // Save category sort order
@@ -191,19 +235,35 @@ export const cardCategoryRouter = createRouter({
       return { success: true };
     }),
 
-  // Save card sort order within a category
+  // Save card sort order within a category.
+  // Keyed by influencerId: rows that don't exist yet (uncategorized
+  // fallback cards) are created so ordering always sticks.
   saveCardOrder: authedQuery
     .input(z.object({
       categoryId: z.number(),
-      orders: z.array(z.object({ itemId: z.number(), sortOrder: z.number() })),
+      orders: z.array(z.object({ influencerId: z.number(), sortOrder: z.number() })),
     }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
+      // Ensure the category belongs to the current user
+      const [catRows] = await conn.execute(
+        `SELECT id FROM cardCategories WHERE id = ? AND userUnionId = ?`,
+        [input.categoryId, ctx.user.unionId]
+      );
+      if ((catRows as any[]).length === 0) {
+        throw new Error("分类不存在");
+      }
       for (const o of input.orders) {
-        await conn.execute(
-          `UPDATE cardCategoryItems SET sortOrder = ? WHERE id = ? AND categoryId = ?`,
-          [o.sortOrder, o.itemId, input.categoryId]
+        const [res] = await conn.execute(
+          `UPDATE cardCategoryItems SET sortOrder = ? WHERE influencerId = ? AND categoryId = ?`,
+          [o.sortOrder, o.influencerId, input.categoryId]
         );
+        if ((res as any).affectedRows === 0) {
+          await conn.execute(
+            `INSERT INTO cardCategoryItems (categoryId, influencerId, sortOrder, isPinned) VALUES (?, ?, ?, 0)`,
+            [input.categoryId, o.influencerId, o.sortOrder]
+          );
+        }
       }
       return { success: true };
     }),

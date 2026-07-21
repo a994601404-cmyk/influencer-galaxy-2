@@ -49,7 +49,36 @@ export function useDeleteInfluencer() {
       utils.influencer.list.invalidate();
       utils.influencer.getNiches.invalidate();
       utils.influencer.getCreators.invalidate();
+      utils.influencer.trashList.invalidate();
+      utils.cardCategory.list.invalidate();
     },
+    onError: (err) => alert(err.message || "删除失败"),
+  });
+}
+
+export function useTrashList() {
+  return trpc.influencer.trashList.useQuery();
+}
+
+export function useRestoreInfluencer() {
+  const utils = trpc.useUtils();
+  return trpc.influencer.restore.useMutation({
+    onSuccess: () => {
+      utils.influencer.list.invalidate();
+      utils.influencer.trashList.invalidate();
+      utils.cardCategory.list.invalidate();
+    },
+    onError: (err) => alert(err.message || "恢复失败"),
+  });
+}
+
+export function useDestroyInfluencer() {
+  const utils = trpc.useUtils();
+  return trpc.influencer.destroy.useMutation({
+    onSuccess: () => {
+      utils.influencer.trashList.invalidate();
+    },
+    onError: (err) => alert(err.message || "彻底删除失败"),
   });
 }
 
@@ -57,6 +86,7 @@ export function useHideInfluencer() {
   const utils = trpc.useUtils();
   return trpc.influencer.hide.useMutation({
     onSuccess: () => utils.influencer.list.invalidate(),
+    onError: (err) => alert(err.message || "隐藏失败"),
   });
 }
 
@@ -64,6 +94,7 @@ export function useUnhideInfluencer() {
   const utils = trpc.useUtils();
   return trpc.influencer.unhide.useMutation({
     onSuccess: () => utils.influencer.list.invalidate(),
+    onError: (err) => alert(err.message || "取消隐藏失败"),
   });
 }
 
