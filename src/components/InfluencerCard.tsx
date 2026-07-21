@@ -4,9 +4,10 @@ import { parseCoopTypes } from "@/lib/coop-types";
 import { parseProfileLinks } from "@/lib/profile-links";
 import { getActiveSignals, subscribeToSignals } from "@/lib/signal-light";
 import { useState, useEffect } from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   ExternalLink, Eye, EyeOff, Trash2, MapPin, Hash, Pin, ArrowRightLeft,
-  ChevronLeft, ChevronRight, Check,
+  ChevronLeft, ChevronRight, Check, GripVertical,
 } from "lucide-react";
 
 const platformLabels: Record<string, string> = {
@@ -44,6 +45,8 @@ interface InfluencerCardProps {
   // Manual ordering within the category
   onMoveForward?: () => void;
   onMoveBackward?: () => void;
+  // Drag & drop (handle shown on the left edge when provided)
+  dragData?: { categoryId: number; index: number };
 }
 
 function SignalDot({ type }: { type: string }) {
@@ -59,12 +62,27 @@ export default function InfluencerCard({
   categories, currentCategoryId,
   onSelect, onToggleHide, onDelete, onTogglePin, onMoveCategory,
   batchMode, checked, onToggleSelect, onMoveForward, onMoveBackward,
+  dragData,
 }: InfluencerCardProps) {
   const { user } = useAuth();
   const [signals, setSignals] = useState<string[]>([]);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const infId = inf?.id ?? 0;
   const isOwner = inf?.createdByUnionId === user?.unionId;
+
+  const dragEnabled = !!dragData && !batchMode && !!infId;
+  const {
+    attributes, listeners, setNodeRef: setDragRef, isDragging,
+  } = useDraggable({
+    id: `inf-${infId}`,
+    data: { influencerId: infId, categoryId: dragData?.categoryId, index: dragData?.index },
+    disabled: !dragEnabled,
+  });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `card-${infId}`,
+    data: { type: "card", influencerId: infId, categoryId: dragData?.categoryId, index: dragData?.index },
+    disabled: !dragEnabled,
+  });
 
   useEffect(() => {
     if (!infId) return;
@@ -82,11 +100,27 @@ export default function InfluencerCard({
 
   return (
     <div
+      ref={setDropRef}
       onClick={batchMode ? onToggleSelect : onSelect}
       className={`card-surface p-4 cursor-pointer transition-all relative ${
         isSelected && !batchMode ? "border-[#ccff00]/30 bg-[#ccff00]/[0.02]" : ""
-      } ${isPinned ? "card-pinned" : ""} ${batchMode && checked ? "border-[#ccff00]/50 bg-[#ccff00]/[0.04]" : ""}`}
+      } ${isPinned ? "card-pinned" : ""} ${batchMode && checked ? "border-[#ccff00]/50 bg-[#ccff00]/[0.04]" : ""} ${
+        isDragging ? "opacity-30" : ""
+      } ${isOver && !isDragging ? "ring-2 ring-[#ccff00]/50" : ""}`}
     >
+      {/* Drag handle (left edge) */}
+      {dragEnabled && (
+        <button
+          ref={setDragRef}
+          {...listeners}
+          {...attributes}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-5 h-10 rounded-md flex items-center justify-center text-[#444] hover:text-[#ccff00] hover:bg-white/[0.04] cursor-grab active:cursor-grabbing transition-colors touch-none"
+          title="拖动调整位置/分类"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      )}
       {/* Batch-mode checkbox */}
       {batchMode && (
         <div
@@ -190,7 +224,7 @@ export default function InfluencerCard({
       )}
 
       {/* Main content */}
-      <div className="flex gap-3">
+      <div className={`flex gap-3 ${dragEnabled ? "pl-4" : ""}`}>
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}

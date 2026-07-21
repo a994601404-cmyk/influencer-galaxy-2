@@ -2,6 +2,22 @@
 // All data is now shared through the backend database
 
 import { trpc } from "@/providers/trpc";
+import { useQueryClient } from "@tanstack/react-query";
+
+// ─── Optimistic-update helpers ────────────────────────────────
+// cardCategory.list data shape: { categories: any[], items: any[], isAdmin: boolean }
+// items are ordered by (isPinned DESC, sortOrder ASC) per category on the server;
+// these helpers replicate that ordering locally for instant UI feedback.
+
+function reorderCategoryItems(items: any[], categoryId: number): any[] {
+  const inCat = items.filter((i) => i.categoryId === categoryId);
+  const pinned = inCat.filter((i) => i.isPinned === 1 || i.isPinned === true);
+  const normal = inCat.filter((i) => !(i.isPinned === 1 || i.isPinned === true));
+  const queue = [...pinned, ...normal];
+  return items.map((i) => (i.categoryId === categoryId ? queue.shift() : i));
+}
+
+type CatListData = { categories: any[]; items: any[]; isAdmin: boolean } | undefined;
 
 // ─── Influencer Hooks ─────────────────────────────────────────
 
@@ -44,15 +60,35 @@ export function useUpdateInfluencer() {
 
 export function useDeleteInfluencer() {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   return trpc.influencer.delete.useMutation({
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      await queryClient.cancelQueries({ queryKey: [["influencer", "list"]] });
+      const prevCat = utils.cardCategory.list.getData();
+      const prevInf = queryClient.getQueriesData({ queryKey: [["influencer", "list"]] });
+      // Remove the card from category view instantly
+      utils.cardCategory.list.setData(undefined, (old: CatListData) =>
+        old ? { ...old, items: old.items.filter((i) => i.influencerId !== vars.id) } : old
+      );
+      // Remove from influencer lists (all filter variants)
+      queryClient.setQueriesData({ queryKey: [["influencer", "list"]] }, (old: any) =>
+        old?.items ? { ...old, items: old.items.filter((i: any) => i.id !== vars.id), total: Math.max(0, (old.total ?? 1) - 1) } : old
+      );
+      return { prevCat, prevInf };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevCat) utils.cardCategory.list.setData(undefined, ctx.prevCat);
+      ctx?.prevInf?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      alert(err.message || "删除失败");
+    },
+    onSettled: () => {
       utils.influencer.list.invalidate();
       utils.influencer.getNiches.invalidate();
       utils.influencer.getCreators.invalidate();
       utils.influencer.trashList.invalidate();
       utils.cardCategory.list.invalidate();
     },
-    onError: (err) => alert(err.message || "删除失败"),
   });
 }
 
@@ -84,17 +120,41 @@ export function useDestroyInfluencer() {
 
 export function useHideInfluencer() {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   return trpc.influencer.hide.useMutation({
-    onSuccess: () => utils.influencer.list.invalidate(),
-    onError: (err) => alert(err.message || "隐藏失败"),
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: [["influencer", "list"]] });
+      const prevInf = queryClient.getQueriesData({ queryKey: [["influencer", "list"]] });
+      queryClient.setQueriesData({ queryKey: [["influencer", "list"]] }, (old: any) =>
+        old?.items ? { ...old, items: old.items.map((i: any) => (i.id === vars.id ? { ...i, hidden: true } : i)) } : old
+      );
+      return { prevInf };
+    },
+    onError: (err, _vars, ctx) => {
+      ctx?.prevInf?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      alert(err.message || "隐藏失败");
+    },
+    onSettled: () => utils.influencer.list.invalidate(),
   });
 }
 
 export function useUnhideInfluencer() {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   return trpc.influencer.unhide.useMutation({
-    onSuccess: () => utils.influencer.list.invalidate(),
-    onError: (err) => alert(err.message || "取消隐藏失败"),
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: [["influencer", "list"]] });
+      const prevInf = queryClient.getQueriesData({ queryKey: [["influencer", "list"]] });
+      queryClient.setQueriesData({ queryKey: [["influencer", "list"]] }, (old: any) =>
+        old?.items ? { ...old, items: old.items.map((i: any) => (i.id === vars.id ? { ...i, hidden: false } : i)) } : old
+      );
+      return { prevInf };
+    },
+    onError: (err, _vars, ctx) => {
+      ctx?.prevInf?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      alert(err.message || "取消隐藏失败");
+    },
+    onSettled: () => utils.influencer.list.invalidate(),
   });
 }
 
@@ -437,28 +497,110 @@ export function useToggleCategoryExpand() {
 export function useMoveCardToCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.moveCard.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const maxOrder = Math.max(-1, ...old.items.filter((i) => i.categoryId === vars.toCategoryId).map((i) => i.sortOrder ?? 0));
+        let items = old.items.map((i) =>
+          i.influencerId === vars.influencerId && i.categoryId === vars.fromCategoryId
+            ? { ...i, categoryId: vars.toCategoryId, sortOrder: maxOrder + 1 }
+            : i
+        );
+        // Card had no row yet (uncategorized fallback) — create a temp one
+        if (!items.some((i) => i.influencerId === vars.influencerId && i.categoryId === vars.toCategoryId)) {
+          items = [...items, { id: `tmp-move-${vars.influencerId}`, categoryId: vars.toCategoryId, influencerId: vars.influencerId, sortOrder: maxOrder + 1, isPinned: 0 }];
+        }
+        items = reorderCategoryItems(items, vars.toCategoryId);
+        return { ...old, items };
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+      alert(err.message || "移动失败");
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 
 export function useToggleCategoryPin() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.togglePin.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const exists = old.items.some((i) => i.influencerId === vars.influencerId && i.categoryId === vars.categoryId);
+        let items = exists
+          ? old.items.map((i) =>
+              i.influencerId === vars.influencerId && i.categoryId === vars.categoryId
+                ? { ...i, isPinned: i.isPinned === 1 ? 0 : 1 }
+                : i
+            )
+          : [...old.items, { id: `tmp-pin-${vars.influencerId}`, categoryId: vars.categoryId, influencerId: vars.influencerId, sortOrder: 999, isPinned: 1 }];
+        items = reorderCategoryItems(items, vars.categoryId);
+        return { ...old, items };
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+      alert(err.message || "置顶失败");
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 
 export function useSaveCategoryOrder() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.saveCategoryOrder.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const orderMap = new Map(vars.orders.map((o) => [o.id, o.sortOrder]));
+        const categories = old.categories
+          .map((c) => (orderMap.has(c.id) ? { ...c, sortOrder: orderMap.get(c.id) } : c))
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        return { ...old, categories };
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+      alert(err.message || "分类排序失败");
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 
 export function useSaveCardOrderInCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.saveCardOrder.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const orderMap = new Map(vars.orders.map((o) => [o.influencerId, o.sortOrder]));
+        const items = old.items.map((i) =>
+          i.categoryId === vars.categoryId && orderMap.has(i.influencerId)
+            ? { ...i, sortOrder: orderMap.get(i.influencerId) }
+            : i
+        );
+        return { ...old, items: reorderCategoryItems(items, vars.categoryId) };
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+      alert(err.message || "排序失败");
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 

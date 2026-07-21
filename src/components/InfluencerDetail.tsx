@@ -37,6 +37,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import EditInfluencerModal from "@/components/EditInfluencerModal";
 import {
   Users, Handshake, Plus, Trash2, CheckCircle2, XCircle, Clock,
   FileText, Video, Send, ChevronDown, Upload, Link as LinkIcon, X,
@@ -140,6 +141,9 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   // ─── Cooperation Types Edit ────────────────────────────────
   const [editingCoopTypes, setEditingCoopTypes] = useState(false);
   const [tempCoopTypes, setTempCoopTypes] = useState<CoopTypeItem[]>([]);
+
+  // ─── Basic Info Edit (编辑资料) ────────────────────────────
+  const [editInfoOpen, setEditInfoOpen] = useState(false);
 
   // ─── Data: Post Records ────────────────────────────────────
   const { data: posts = [] } = usePostList(infId);
@@ -462,6 +466,14 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
               {displayCountry(inf.location) || inf.location}<span className="mx-1">·</span>{getNicheLabel(inf.niche)}
             </p>
           </div>
+          {canEdit && (
+            <button
+              onClick={() => setEditInfoOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#888] hover:text-[#ccff00] hover:border-[#ccff00]/30 text-xs transition-all flex-shrink-0"
+            >
+              <Pencil className="w-3 h-3" />编辑资料
+            </button>
+          )}
         </div>
 
         {/* Cooperation Types */}
@@ -1069,6 +1081,13 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           </div>
         )}
       </DialogContent>
+      {/* 编辑资料弹窗（名称/平台/领域/性别/国家/链接/备注） */}
+      <EditInfluencerModal
+        influencer={inf}
+        open={editInfoOpen}
+        onClose={() => setEditInfoOpen(false)}
+        onSaved={(updated) => { if (onUpdate) onUpdate(updated); }}
+      />
     </Dialog>
   );
 }

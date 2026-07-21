@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "react-router";
+import { SELECTABLE_NICHES } from "@/lib/niche-map";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
 import {
   useInfluencerList,
   useDeleteInfluencer,
@@ -44,6 +46,23 @@ function useCreatorNameMap() {
 const platformLabels: Record<string, string> = {
   instagram: "Instagram", tiktok: "TikTok", xiaohongshu: "小红书", douyin: "抖音",
 };
+
+// Drop target for a category's card grid (accepts cards from other categories)
+function CategoryDropZone({ categoryId, className, children }: {
+  categoryId: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `cat-${categoryId}`,
+    data: { type: "cat", categoryId },
+  });
+  return (
+    <div ref={setNodeRef} className={`${className ?? ""} rounded-lg transition-shadow ${isOver ? "ring-2 ring-[#ccff00]/40" : ""}`}>
+      {children}
+    </div>
+  );
+}
 
 export default function Influencers() {
   const { user, isAuthenticated, isAdmin } = useAuth();
@@ -310,6 +329,51 @@ export default function Influencers() {
     exitBatchMode();
   }, [selected, batchTargetCat, moveCardMut, exitBatchMode]);
 
+  // ── Drag & drop (handle on each card) ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+  const [activeDragName, setActiveDragName] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as any;
+    const inf = data?.influencerId ? influencerMap.get(data.influencerId) : null;
+    setActiveDragName(inf?.name || "卡片");
+  }, [influencerMap]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragName(null);
+    const { active, over } = event;
+    if (!over) return;
+    const src = active.data.current as any;
+    const dst = over.data.current as any;
+    if (!src?.influencerId || !dst?.categoryId) return;
+
+    if (dst.type === "card" && dst.categoryId === src.categoryId) {
+      // Reorder within the same category
+      if (dst.influencerId === src.influencerId) return;
+      const cat = groupedCategories.find((c: any) => c.id === src.categoryId);
+      if (!cat) return;
+      const items = [...(cat.items || [])];
+      const fromIdx = items.findIndex((i: any) => i.influencerId === src.influencerId);
+      const toIdx = items.findIndex((i: any) => i.influencerId === dst.influencerId);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [moved] = items.splice(fromIdx, 1);
+      items.splice(toIdx, 0, moved);
+      saveCardOrderMut.mutate({
+        categoryId: cat.id,
+        orders: items.map((item: any, i: number) => ({ influencerId: item.influencerId, sortOrder: i })),
+      });
+    } else if (dst.categoryId !== src.categoryId) {
+      // Drop on another category (card or empty area) → move to the end
+      moveCardMut.mutate({
+        influencerId: src.influencerId,
+        fromCategoryId: src.categoryId,
+        toCategoryId: dst.categoryId,
+      });
+    }
+  }, [groupedCategories, saveCardOrderMut, moveCardMut]);
+
   // Creator map for admin filter
   const creatorMap = useCreatorNameMap();
   const creators = useMemo(() => {
@@ -392,16 +456,9 @@ export default function Influencers() {
           className="px-3 py-2 rounded-lg bg-[#111] border border-white/[0.06] text-white text-sm focus:outline-none focus:border-[#ccff00]/30"
         >
           <option value="all">全部领域</option>
-          <option value="lifestyle">Lifestyle</option>
-          <option value="fashion">Fashion</option>
-          <option value="beauty">Beauty</option>
-          <option value="tech">Tech</option>
-          <option value="food">Food</option>
-          <option value="fitness">Fitness</option>
-          <option value="parenting">Parenting</option>
-          <option value="pet">Pet</option>
-          <option value="gaming">Gaming</option>
-          <option value="travel">Travel</option>
+          {Object.entries(SELECTABLE_NICHES).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
         </select>
         {isAdmin && (
           <select
@@ -425,9 +482,52 @@ export default function Influencers() {
         >
           <Settings className="w-4 h-4" />{batchMode ? "退出批量" : "批量管理"}
         </button>
+        {showNewCatInput ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="分类名称"
+              className="px-3 py-2 rounded-lg bg-[#111] border border-[#ccff00]/30 text-white text-sm w-32 focus:outline-none"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newCatName.trim()) {
+                  createCategoryMut.mutate({ name: newCatName.trim() });
+                  setNewCatName("");
+                  setShowNewCatInput(false);
+                }
+                if (e.key === "Escape") { setShowNewCatInput(false); setNewCatName(""); }
+              }}
+            />
+            <button
+              onClick={() => {
+                if (newCatName.trim()) createCategoryMut.mutate({ name: newCatName.trim() });
+                setNewCatName("");
+                setShowNewCatInput(false);
+              }}
+              className="px-3 py-2 rounded-lg bg-[#ccff00] text-black text-sm font-medium hover:bg-[#b8e600]"
+            >
+              创建
+            </button>
+            <button
+              onClick={() => { setShowNewCatInput(false); setNewCatName(""); }}
+              className="px-2 py-2 rounded-lg text-[#666] text-sm hover:text-white"
+            >
+              取消
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNewCatInput(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#111] border border-dashed border-white/[0.1] text-[#666] hover:text-[#ccff00] hover:border-[#ccff00]/30 transition-all text-sm"
+          >
+            <FolderPlus className="w-4 h-4" />新建分类
+          </button>
+        )}
       </div>
 
       {/* Categories */}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
         {filteredCategories.map((cat: any, catIndex: number) => (
           <div
@@ -511,7 +611,7 @@ export default function Influencers() {
 
             {/* Cards grid */}
             {cat.isExpanded && (
-              <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <CategoryDropZone categoryId={cat.id} className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {cat.items.map((item: any, itemIndex: number) => (
                   <InfluencerCard
                     key={item.id}
@@ -525,6 +625,7 @@ export default function Influencers() {
                     batchMode={batchMode}
                     checked={selected.has(item.influencerId)}
                     onToggleSelect={() => toggleSelect(item.influencerId, cat.id)}
+                    dragData={!batchMode && !filtersActive ? { categoryId: cat.id, index: itemIndex } : undefined}
                     onSelect={() => {
                       setSelectedInfluencer(item.influencer);
                       setDetailOpen(true);
@@ -539,61 +640,23 @@ export default function Influencers() {
                 ))}
                 {(cat.items || []).length === 0 && (
                   <div className="col-span-full text-center py-8 text-[#444] text-sm">
-                    暂无卡片
+                    拖拽卡片到此处
                   </div>
                 )}
-              </div>
+              </CategoryDropZone>
             )}
           </div>
         ))}
 
-        {/* Add new category */}
-        <div className="flex items-center gap-2">
-          {showNewCatInput ? (
-            <div className="flex items-center gap-2">
-              <input
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                placeholder="分类名称"
-                className="px-3 py-2 rounded-lg bg-[#111] border border-white/[0.1] text-white text-sm w-40 focus:outline-none focus:border-[#ccff00]/30"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newCatName.trim()) {
-                    createCategoryMut.mutate({ name: newCatName.trim() });
-                    setNewCatName("");
-                    setShowNewCatInput(false);
-                  }
-                }}
-              />
-              <button
-                onClick={() => {
-                  if (newCatName.trim()) {
-                    createCategoryMut.mutate({ name: newCatName.trim() });
-                    setNewCatName("");
-                  }
-                  setShowNewCatInput(false);
-                }}
-                className="px-3 py-2 rounded-lg bg-[#ccff00] text-black text-sm font-medium hover:bg-[#b8e600]"
-              >
-                创建
-              </button>
-              <button
-                onClick={() => { setShowNewCatInput(false); setNewCatName(""); }}
-                className="px-3 py-2 rounded-lg bg-[#111] text-[#888] text-sm hover:text-white"
-              >
-                取消
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowNewCatInput(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-white/[0.1] text-[#666] hover:text-[#ccff00] hover:border-[#ccff00]/30 transition-all text-sm"
-            >
-              <FolderPlus className="w-4 h-4" />新建分类
-            </button>
-          )}
-        </div>
       </div>
+      <DragOverlay>
+        {activeDragName ? (
+          <div className="px-4 py-2 rounded-xl bg-[#1a1a1a] border border-[#ccff00]/40 text-white text-sm font-bold shadow-2xl">
+            {activeDragName}
+          </div>
+        ) : null}
+      </DragOverlay>
+      </DndContext>
 
       {/* Empty state */}
       {visibleCount === 0 && !isLoading && (

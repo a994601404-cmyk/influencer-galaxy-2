@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useCreateInfluencer, useCreateNegotiation } from "@/lib/influencer-api";
 import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, prefetchRates } from "@/lib/currency";
 import { COOP_TYPE_OPTIONS, coopTypesToJson, type CoopTypeItem } from "@/lib/coop-types";
+import { SELECTABLE_NICHES } from "@/lib/niche-map";
 import CountrySelect from "@/components/CountrySelect";
 import {
   Plus, X, Loader2, AlertCircle, Trash2, Link2,
@@ -20,13 +21,6 @@ function nowBeijing(): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${bj.getFullYear()}-${pad(bj.getMonth() + 1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
 }
-
-const PRESET_NICHES: Record<string, string> = {
-  beauty: "美妆", fitness: "健身", fashion: "时尚", tech: "数码",
-  food: "美食", travel: "旅行", lifestyle: "生活方式", "ai-creator": "AI创作者",
-  "ai-virtual": "AI 虚拟网红", "ai-prompts": "AI prompts博主", "ai-vertical": "AI 垂类",
-  "tech-general": "科技泛类博主", "content-creator": "Content Creator",
-};
 
 const LINK_PLATFORM_OPTIONS = ["Instagram", "TikTok", "YouTube", "X", "小红书", "抖音", "其他"];
 
@@ -94,9 +88,12 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
     }
   }, [formLocalPrice, formCurrency]);
 
-  // Custom niches
+  // Custom niches (keys stored in localStorage; display names in customNicheNames)
   const [customNiches] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("customNiches") || "[]"); } catch { return []; }
+  });
+  const [customNicheNames] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("customNicheNames") || "{}"); } catch { return {}; }
   });
   const [showAddNiche, setShowAddNiche] = useState(false);
   const [newNicheName, setNewNicheName] = useState("");
@@ -104,8 +101,8 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
   const createMutation = useCreateInfluencer();
   const createNegMutation = useCreateNegotiation();
 
-  const allNiches = { ...PRESET_NICHES };
-  customNiches.forEach((n) => { if (!allNiches[n]) allNiches[n] = n; });
+  const allNiches: Record<string, string> = { ...SELECTABLE_NICHES };
+  customNiches.forEach((key) => { if (!allNiches[key]) allNiches[key] = customNicheNames[key] || key; });
 
   const handleAddCustomNiche = () => {
     const name = newNicheName.trim();
