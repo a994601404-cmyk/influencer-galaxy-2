@@ -8,7 +8,15 @@ import { isTestMode } from "@/lib/test-mode";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 15s 内重复挂载不重新请求，减少页面切换/弹窗打开时的等待
+      staleTime: 15000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 // API backend URL - auto-detect environment
 // On Vercel: uses same domain /api/trpc
 // On Kimi platform: uses platform-provided API domain

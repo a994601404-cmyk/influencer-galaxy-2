@@ -16,16 +16,27 @@ export const cardCategoryRouter = createRouter({
         [unionId]
       );
 
-      // First-time users (or users whose categories were wiped) get the three
+      // First-time users (or users whose categories were wiped) get the
       // default categories created server-side to avoid frontend races.
       if ((catRows as any[]).length === 0) {
-        const defaults = ["对接中", "已发布", "网红库"];
+        const defaults = ["审核中", "对接中", "已发布", "网红库"];
         for (let i = 0; i < defaults.length; i++) {
           await conn.execute(
             `INSERT INTO cardCategories (userUnionId, name, sortOrder, isExpanded) VALUES (?, ?, ?, 1)`,
             [unionId, defaults[i], i]
           );
         }
+        [catRows] = await conn.execute(
+          `SELECT * FROM cardCategories WHERE userUnionId = ? ORDER BY sortOrder ASC`,
+          [unionId]
+        );
+      } else if (!(catRows as any[]).some((c: any) => c.name === "审核中")) {
+        // Existing users: prepend the locked "审核中" category at the top
+        const minOrder = Math.min(...(catRows as any[]).map((c: any) => c.sortOrder ?? 0));
+        await conn.execute(
+          `INSERT INTO cardCategories (userUnionId, name, sortOrder, isExpanded) VALUES (?, ?, ?, 1)`,
+          [unionId, "审核中", minOrder - 1]
+        );
         [catRows] = await conn.execute(
           `SELECT * FROM cardCategories WHERE userUnionId = ? ORDER BY sortOrder ASC`,
           [unionId]
@@ -78,6 +89,9 @@ export const cardCategoryRouter = createRouter({
   create: authedQuery
     .input(z.object({ name: z.string().min(1).max(50) }))
     .mutation(async ({ input, ctx }) => {
+      if (input.name.trim() === "审核中") {
+        throw new Error("「审核中」是系统保留分类");
+      }
       const conn = await getRawConnection();
       // Get max sortOrder
       const [rows] = await conn.execute(
@@ -98,6 +112,14 @@ export const cardCategoryRouter = createRouter({
     .input(z.object({ id: z.number(), name: z.string().min(1).max(50) }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
+      const [rows] = await conn.execute(
+        `SELECT name FROM cardCategories WHERE id = ? AND userUnionId = ?`,
+        [input.id, ctx.user.unionId]
+      );
+      const current = (rows as any[])[0]?.name;
+      if (current === "审核中" || input.name.trim() === "审核中") {
+        throw new Error("「审核中」是系统保留分类，不可重命名");
+      }
       await conn.execute(
         `UPDATE cardCategories SET name = ? WHERE id = ? AND userUnionId = ?`,
         [input.name, input.id, ctx.user.unionId]
@@ -110,6 +132,14 @@ export const cardCategoryRouter = createRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
+      // "审核中" is a system category and cannot be deleted
+      const [selfRows] = await conn.execute(
+        `SELECT name FROM cardCategories WHERE id = ? AND userUnionId = ?`,
+        [input.id, ctx.user.unionId]
+      );
+      if ((selfRows as any[])[0]?.name === "审核中") {
+        throw new Error("「审核中」是系统保留分类，不可删除");
+      }
       // Find "网红库" category
       const [rows] = await conn.execute(
         `SELECT id FROM cardCategories WHERE userUnionId = ? AND name = '网红库' LIMIT 1`,
@@ -154,6 +184,15 @@ export const cardCategoryRouter = createRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
+      // "审核中" is a locked category: cards stay there until the admin
+      // fills the review price (which moves them out automatically)
+      const [lockCheck] = await conn.execute(
+        `SELECT id, name FROM cardCategories WHERE id IN (?, ?) AND userUnionId = ?`,
+        [input.fromCategoryId, input.toCategoryId, ctx.user.unionId]
+      );
+      if ((lockCheck as any[]).some((c: any) => c.name === "审核中")) {
+        throw new Error("「审核中」分类已锁定：管理员填写审核报价后卡片会自动移出");
+      }
       // Get max sortOrder in target category
       const [rows] = await conn.execute(
         `SELECT MAX(sortOrder) as maxOrder FROM cardCategoryItems WHERE categoryId = ?`,

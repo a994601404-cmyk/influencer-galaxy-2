@@ -6,6 +6,7 @@ import {
   useScriptReviewListAll,
   useVideoReviewListAll,
   usePostListAll,
+  useUserList,
 } from "@/lib/influencer-api";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
@@ -28,7 +29,7 @@ function displayCountry(code: string): string {
 }
 
 // Read-only card for review mode — click opens the full detail dialog
-function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
+function ReviewCard({ inf, creatorName, onClick }: { inf: any; creatorName?: string; onClick: () => void }) {
   if (!inf || !inf.id) return null;
   const coopItems = parseCoopTypes(inf.coopTypes);
 
@@ -37,6 +38,12 @@ function ReviewCard({ inf, onClick }: { inf: any; onClick: () => void }) {
       onClick={onClick}
       className="card-surface p-4 relative opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
     >
+      {/* 左上角：提交人 */}
+      {creatorName && (
+        <p className="text-[10px] text-sub mb-2">
+          由 <span className="text-brand font-semibold">{creatorName}</span> 提交
+        </p>
+      )}
       <div className="flex gap-3">
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
@@ -112,6 +119,15 @@ export default function Review() {
   const { data: allScriptReviews = [] } = useScriptReviewListAll();
   const { data: allVideoReviews = [] } = useVideoReviewListAll();
   const { data: allPosts = [] } = usePostListAll();
+  const { data: allUsers } = useUserList();
+
+  const creatorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (allUsers || []).forEach((u: any) => {
+      if (u?.unionId) map.set(u.unionId, u.name || u.email || `用户#${u.id}`);
+    });
+    return map;
+  }, [allUsers]);
 
   const allInfluencers = useMemo(() => {
     return (listData?.items || []).filter((item: any) => item != null && item.id != null);
@@ -255,6 +271,7 @@ export default function Review() {
           <ReviewCard
             key={inf.id}
             inf={inf}
+            creatorName={creatorMap.get(inf.createdByUnionId)}
             onClick={() => {
               setSelectedInfluencer(inf);
               setDetailOpen(true);

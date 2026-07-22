@@ -51,6 +51,46 @@ async function fetchLatestPrices(influencerIds: number[]): Promise<Map<number, {
   }
 }
 
+// Move an influencer's cards out of the locked "审核中" category into
+// "对接中" once the admin has made a price decision
+async function moveOutOfReview(influencerId: number) {
+  try {
+    const conn = await getRawConnection();
+    const [rows] = await conn.execute(
+      `SELECT c.id as itemId, cat.userUnionId as ownerId FROM cardCategoryItems c
+       JOIN cardCategories cat ON c.categoryId = cat.id
+       WHERE c.influencerId = ? AND cat.name = '审核中'`,
+      [influencerId]
+    );
+    for (const row of rows as any[]) {
+      const [targetRows] = await conn.execute(
+        `SELECT id FROM cardCategories WHERE userUnionId = ? AND name = '对接中' LIMIT 1`,
+        [row.ownerId]
+      );
+      let targetId = (targetRows as any[])[0]?.id;
+      if (!targetId) {
+        const [maxCat] = await conn.execute(
+          `SELECT MAX(sortOrder) as m FROM cardCategories WHERE userUnionId = ?`,
+          [row.ownerId]
+        );
+        const [ins] = await conn.execute(
+          `INSERT INTO cardCategories (userUnionId, name, sortOrder, isExpanded) VALUES (?, '对接中', ?, 1)`,
+          [row.ownerId, ((maxCat as any[])[0]?.m ?? -1) + 1]
+        );
+        targetId = (ins as any).insertId;
+      }
+      const [maxItem] = await conn.execute(
+        `SELECT MAX(sortOrder) as m FROM cardCategoryItems WHERE categoryId = ?`,
+        [targetId]
+      );
+      await conn.execute(
+        `UPDATE cardCategoryItems SET categoryId = ?, sortOrder = ? WHERE id = ?`,
+        [targetId, ((maxItem as any[])[0]?.m ?? -1) + 1, row.itemId]
+      );
+    }
+  } catch { /* best effort — don't fail the price update */ }
+}
+
 // ─── List ─────────────────────────────────────────────────────
 const listInput = z.object({
   platform: z.string().optional(),
@@ -399,6 +439,8 @@ export const influencerRouter = createRouter({
         adminPriceUpdatedAt: now,
         coopStatus: input.price > 0 ? "cooperating" : "pending",
       }).where(eq(influencers.id, input.id));
+      // Price decided → move the card out of the locked "审核中" category
+      if (input.price > 0) await moveOutOfReview(input.id);
       const row = await db.select().from(influencers).where(eq(influencers.id, input.id)).limit(1);
       return toDbRecord(row[0]);
     }),
@@ -412,6 +454,8 @@ export const influencerRouter = createRouter({
         adminPrice: 0,
         coopStatus: "not-cooperating",
       }).where(eq(influencers.id, input.id));
+      // Decision made → also release from "审核中"
+      await moveOutOfReview(input.id);
       const row = await db.select().from(influencers).where(eq(influencers.id, input.id)).limit(1);
       return toDbRecord(row[0]);
     }),

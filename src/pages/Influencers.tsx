@@ -29,7 +29,7 @@ import InfluencerCard from "@/components/InfluencerCard";
 import AddInfluencerModal from "@/components/AddInfluencerModal";
 import {
   Search, Plus, Users, Settings, ChevronDown, ChevronRight, FolderPlus,
-  Trash2, Pencil, Check, X, Archive, RotateCcw, ArrowUp, ArrowDown,
+  Trash2, Pencil, Check, X, Archive, RotateCcw, ArrowUp, ArrowDown, Lock,
 } from "lucide-react";
 
 function useCreatorNameMap() {
@@ -119,7 +119,7 @@ export default function Influencers() {
   const {
     data: listData,
     isLoading,
-  } = useInfluencerList({ platform: platform !== "all" ? platform : undefined, creator: isAdmin && creator !== "all" ? creator : undefined });
+  } = useInfluencerList({ platform: platform !== "all" ? platform : undefined });
 
   const { data: allNegotiations } = useNegotiationListAll();
   const { mutate: deleteInf } = useDeleteInfluencer();
@@ -159,8 +159,12 @@ export default function Influencers() {
     if (!isAdmin) {
       return items.filter((i: any) => i.createdByUnionId === currentUnionId);
     }
+    // 管理员按创建者筛选：前端过滤，立即生效且省一次请求
+    if (creator !== "all") {
+      return items.filter((i: any) => i.createdByUnionId === creator);
+    }
     return items;
-  }, [listData, isAdmin, currentUnionId]);
+  }, [listData, isAdmin, currentUnionId, creator]);
 
   // Merge price into influencers
   const influencersWithPrices = useMemo(() => {
@@ -365,6 +369,9 @@ export default function Influencers() {
         orders: items.map((item: any, i: number) => ({ influencerId: item.influencerId, sortOrder: i })),
       });
     } else if (dst.categoryId !== src.categoryId) {
+      // 「审核中」分类锁定：任何卡片不可移入
+      const targetCat = groupedCategories.find((c: any) => c.id === dst.categoryId);
+      if (targetCat?.name === "审核中") return;
       // Drop on another category (card or empty area) → move to the end
       moveCardMut.mutate({
         influencerId: src.influencerId,
@@ -378,13 +385,14 @@ export default function Influencers() {
   const creatorMap = useCreatorNameMap();
   const creators = useMemo(() => {
     const map = new Map<string, string>();
-    allInfluencers.forEach((inf: any) => {
-      if (inf.createdByUnionId) {
+    // 基于未筛选的完整列表构建，避免选中某个创建者后下拉选项消失
+    (listData?.items || []).forEach((inf: any) => {
+      if (inf?.createdByUnionId) {
         map.set(inf.createdByUnionId, creatorMap.get(inf.createdByUnionId) || inf.createdByUnionId);
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [allInfluencers, creatorMap]);
+  }, [listData, creatorMap]);
 
   if (!isAuthenticated) {
     return (
@@ -529,10 +537,12 @@ export default function Influencers() {
       {/* Categories */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
-        {filteredCategories.map((cat: any, catIndex: number) => (
+        {filteredCategories.map((cat: any, catIndex: number) => {
+          const isReviewCat = cat.name === "审核中";
+          return (
           <div
             key={cat.id}
-            className="rounded-xl border border-line bg-base"
+            className={`rounded-xl border ${isReviewCat ? "border-amber-500/40 bg-amber-500/[0.03]" : "border-line bg-base"}`}
           >
             {/* Category header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-line">
@@ -567,9 +577,15 @@ export default function Influencers() {
                     <button onClick={() => setEditingCatId(null)} className="text-faint"><X className="w-3 h-3" /></button>
                   </div>
                 ) : (
-                  <h3 className="text-sm font-bold text-content">{cat.name}</h3>
+                  <h3 className="text-sm font-bold text-content flex items-center gap-1.5">
+                    {cat.name}
+                    {isReviewCat && <Lock className="w-3.5 h-3.5 text-amber-500" />}
+                  </h3>
                 )}
                 <span className="text-xs text-faint">({(cat.items || []).length})</span>
+                {isReviewCat && (
+                  <span className="text-[10px] text-amber-500/80">管理员填写审核报价后自动移出</span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -588,6 +604,8 @@ export default function Influencers() {
                 >
                   <ArrowDown className="w-3 h-3" />
                 </button>
+                {!isReviewCat && (
+                <>
                 <button
                   onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.name); }}
                   className="w-6 h-6 rounded flex items-center justify-center text-faint hover:text-brand transition-colors"
@@ -606,6 +624,8 @@ export default function Influencers() {
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
+                </>
+                )}
               </div>
             </div>
 
@@ -620,12 +640,13 @@ export default function Influencers() {
                     isAdmin={isAdmin}
                     canEdit={canEditCard(item.influencer)}
                     isPinned={item.isPinned === 1}
-                    categories={filteredCategories}
+                    categories={isReviewCat ? undefined : filteredCategories.filter((c: any) => c.name !== "审核中")}
                     currentCategoryId={cat.id}
                     batchMode={batchMode}
                     checked={selected.has(item.influencerId)}
                     onToggleSelect={() => toggleSelect(item.influencerId, cat.id)}
-                    dragData={!batchMode && !filtersActive ? { categoryId: cat.id, index: itemIndex } : undefined}
+                    dragData={!batchMode && !filtersActive && !isReviewCat ? { categoryId: cat.id, index: itemIndex } : undefined}
+                    creatorName={isAdmin ? creatorMap.get(item.influencer.createdByUnionId) || item.influencer.createdByUnionId : undefined}
                     onSelect={() => {
                       setSelectedInfluencer(item.influencer);
                       setDetailOpen(true);
@@ -633,7 +654,7 @@ export default function Influencers() {
                     onToggleHide={() => item.influencer.hidden ? handleUnhide(item.influencerId) : handleHide(item.influencerId)}
                     onDelete={() => handleDelete(item.influencerId)}
                     onTogglePin={() => togglePinMut.mutate({ influencerId: item.influencerId, categoryId: cat.id })}
-                    onMoveCategory={(targetId: number) => handleMoveCard(item.influencerId, cat.id, targetId)}
+                    onMoveCategory={isReviewCat ? undefined : (targetId: number) => handleMoveCard(item.influencerId, cat.id, targetId)}
                     onMoveForward={!batchMode && !filtersActive && itemIndex > 0 ? () => handleCardReorder(cat, itemIndex, -1) : undefined}
                     onMoveBackward={!batchMode && !filtersActive && itemIndex < cat.items.length - 1 ? () => handleCardReorder(cat, itemIndex, 1) : undefined}
                   />
@@ -646,7 +667,8 @@ export default function Influencers() {
               </CategoryDropZone>
             )}
           </div>
-        ))}
+          );
+        })}
 
       </div>
       <DragOverlay>
@@ -678,7 +700,7 @@ export default function Influencers() {
             className="px-2 py-1.5 rounded-lg bg-base border border-line text-content text-xs focus:outline-none focus:border-brand/30"
           >
             <option value="">移动到分类…</option>
-            {groupedCategories.map((c: any) => (
+            {groupedCategories.filter((c: any) => c.name !== "审核中").map((c: any) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -789,9 +811,10 @@ export default function Influencers() {
         onClose={() => setAddOpen(false)}
         onAdded={(inf: any) => {
           setAddOpen(false);
-          // Auto-assign new influencer to "网红库" (or first available category)
+          // 新网红自动进入「审核中」分类，等待管理员填写审核报价后自动移出
           if (inf?.id && categoryData?.categories && (categoryData.categories || []).length > 0) {
-            let targetCat = categoryData.categories.find((c: any) => c.name === "网红库");
+            let targetCat = categoryData.categories.find((c: any) => c.name === "审核中");
+            if (!targetCat) targetCat = categoryData.categories.find((c: any) => c.name === "网红库");
             if (!targetCat) targetCat = categoryData.categories[0];
             if (targetCat) {
               assignCardMut.mutate({ influencerId: inf.id, categoryId: targetCat.id });

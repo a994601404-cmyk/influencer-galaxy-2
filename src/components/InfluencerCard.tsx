@@ -47,6 +47,8 @@ interface InfluencerCardProps {
   onMoveBackward?: () => void;
   // Drag & drop (handle shown on the left edge when provided)
   dragData?: { categoryId: number; index: number };
+  // 创建者用户名（管理员视角右下角高亮展示）
+  creatorName?: string;
 }
 
 function SignalDot({ type }: { type: string }) {
@@ -62,7 +64,7 @@ export default function InfluencerCard({
   categories, currentCategoryId,
   onSelect, onToggleHide, onDelete, onTogglePin, onMoveCategory,
   batchMode, checked, onToggleSelect, onMoveForward, onMoveBackward,
-  dragData,
+  dragData, creatorName,
 }: InfluencerCardProps) {
   const { user } = useAuth();
   const [signals, setSignals] = useState<string[]>([]);
@@ -306,6 +308,15 @@ export default function InfluencerCard({
               <ExternalLink className="w-3 h-3" />{link.platform}
             </a>
           ))}
+        </div>
+      )}
+
+      {/* 创建者（右下角高亮） */}
+      {creatorName && (
+        <div className="flex justify-end mt-2">
+          <span className="text-[9px] font-semibold text-brand/90 bg-lime/10 px-1.5 py-0.5 rounded">
+            by {creatorName}
+          </span>
         </div>
       )}
     </div>

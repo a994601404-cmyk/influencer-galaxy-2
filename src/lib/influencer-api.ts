@@ -171,9 +171,12 @@ export function useUpdateUserPrice() {
 export function useUpdateAdminPrice() {
   const utils = trpc.useUtils();
   return trpc.influencer.updateAdminPrice.useMutation({
-    onSuccess: () => {
+    onSettled: () => {
       utils.influencer.list.invalidate();
       utils.influencer.getById.invalidate();
+      utils.negotiation.list.invalidate();
+      utils.negotiation.listAll.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -181,9 +184,12 @@ export function useUpdateAdminPrice() {
 export function useSetNotCooperating() {
   const utils = trpc.useUtils();
   return trpc.influencer.setNotCooperating.useMutation({
-    onSuccess: () => {
+    onSettled: () => {
       utils.influencer.list.invalidate();
       utils.influencer.getById.invalidate();
+      utils.negotiation.list.invalidate();
+      utils.negotiation.listAll.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -227,8 +233,23 @@ export function useCreateNegotiation() {
 export function useUpdateNegotiation() {
   const utils = trpc.useUtils();
   return trpc.negotiation.update.useMutation({
-    onSuccess: (_, vars) => {
-      utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
+    onMutate: async (vars) => {
+      await utils.negotiation.listAll.cancel();
+      const prevAll = utils.negotiation.listAll.getData();
+      // Optimistically apply adminPrice/notes to the record in listAll
+      utils.negotiation.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old)
+          ? old.map((n: any) => (n?.id === vars.id ? { ...n, ...(vars.adminPrice !== undefined ? { adminPrice: vars.adminPrice } : {}), ...(vars.notes !== undefined ? { notes: vars.notes } : {}) } : n))
+          : old
+      );
+      return { prevAll };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prevAll) utils.negotiation.listAll.setData(undefined, ctx.prevAll);
+    },
+    onSettled: (_data, _err, vars) => {
+      // vars may not carry influencerId — invalidate broadly
+      utils.negotiation.list.invalidate();
       utils.negotiation.listAll.invalidate();
       utils.influencer.list.invalidate();
     },
@@ -287,7 +308,19 @@ export function usePostListAll() {
 export function useReviewPost() {
   const utils = trpc.useUtils();
   return trpc.post.review.useMutation({
-    onSuccess: () => {
+    onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
+      await utils.post.listAll.cancel();
+      const prev = utils.post.listAll.getData();
+      utils.post.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old) ? old.map((p: any) => (p?.id === vars.id ? { ...p, status: vars.status, adminNote: vars.adminNote ?? p.adminNote } : p)) : old
+      );
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.post.listAll.setData(undefined, ctx.prev);
+      alert(err.message || "操作失败");
+    },
+    onSettled: () => {
       utils.post.list.invalidate();
       utils.post.listAll.invalidate();
     },
@@ -366,7 +399,19 @@ export function useCreateScriptReview() {
 export function useReviewScript() {
   const utils = trpc.useUtils();
   return trpc.scriptReview.review.useMutation({
-    onSuccess: () => {
+    onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
+      await utils.scriptReview.listAll.cancel();
+      const prev = utils.scriptReview.listAll.getData();
+      utils.scriptReview.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old) ? old.map((s: any) => (s?.id === vars.id ? { ...s, status: vars.status, adminNote: vars.adminNote ?? s.adminNote } : s)) : old
+      );
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.scriptReview.listAll.setData(undefined, ctx.prev);
+      alert(err.message || "操作失败");
+    },
+    onSettled: () => {
       utils.scriptReview.list.invalidate();
       utils.scriptReview.listAll.invalidate();
     },
@@ -399,7 +444,19 @@ export function useCreateVideoReview() {
 export function useReviewVideo() {
   const utils = trpc.useUtils();
   return trpc.videoReview.review.useMutation({
-    onSuccess: () => {
+    onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
+      await utils.videoReview.listAll.cancel();
+      const prev = utils.videoReview.listAll.getData();
+      utils.videoReview.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old) ? old.map((v: any) => (v?.id === vars.id ? { ...v, status: vars.status, adminNote: vars.adminNote ?? v.adminNote } : v)) : old
+      );
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.videoReview.listAll.setData(undefined, ctx.prev);
+      alert(err.message || "操作失败");
+    },
+    onSettled: () => {
       utils.videoReview.list.invalidate();
       utils.videoReview.listAll.invalidate();
     },
@@ -470,6 +527,7 @@ export function useCreateCardCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.create.useMutation({
     onSuccess: () => utils.cardCategory.list.invalidate(),
+    onError: (e) => alert(e.message),
   });
 }
 
@@ -477,6 +535,7 @@ export function useUpdateCardCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.update.useMutation({
     onSuccess: () => utils.cardCategory.list.invalidate(),
+    onError: (e) => alert(e.message),
   });
 }
 
@@ -484,13 +543,29 @@ export function useDeleteCardCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.delete.useMutation({
     onSuccess: () => utils.cardCategory.list.invalidate(),
+    onError: (e) => alert(e.message),
   });
 }
 
 export function useToggleCategoryExpand() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.toggleExpand.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        return {
+          ...old,
+          categories: old.categories.map((c) => (c.id === vars.id ? { ...c, isExpanded: c.isExpanded === 1 ? 0 : 1 } : c)),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 
