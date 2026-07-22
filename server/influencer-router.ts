@@ -339,10 +339,14 @@ export const influencerRouter = createRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "无权彻底删除此网红" });
       }
       await db.delete(influencers).where(eq(influencers.id, input.id));
-      // Clean up category assignments so no orphan rows remain
+      // Clean up related records so no orphan rows remain
       try {
         const conn = await getRawConnection();
         await conn.execute(`DELETE FROM cardCategoryItems WHERE influencerId = ?`, [input.id]);
+        await conn.execute(`DELETE FROM negotiationRecords WHERE influencerId = ?`, [input.id]);
+        await conn.execute(`DELETE FROM scriptReviews WHERE influencerId = ?`, [input.id]);
+        await conn.execute(`DELETE FROM videoReviews WHERE influencerId = ?`, [input.id]);
+        await conn.execute(`DELETE FROM postRecords WHERE influencerId = ?`, [input.id]);
       } catch { /* ignore cleanup failure */ }
       return { success: true };
     }),

@@ -197,6 +197,19 @@ export default function Review() {
     return influencersWithPrices.filter((inf: any) => ids.has(inf.id));
   }, [influencersWithPrices, reviewTab, pendingMap]);
 
+  // Tab badge counts — computed over the SAME visible influencer set as the
+  // cards below, so trashed/orphaned review records never inflate the count
+  const visibleCounts = useMemo(() => {
+    const counts: Record<"price"|"script"|"video"|"post", number> = { price: 0, script: 0, video: 0, post: 0 };
+    for (const inf of influencersWithPrices) {
+      if (pricePendingIds.has(inf.id)) counts.price++;
+      if (scriptPendingIds.has(inf.id)) counts.script++;
+      if (videoPendingIds.has(inf.id)) counts.video++;
+      if (postPendingIds.has(inf.id)) counts.post++;
+    }
+    return counts;
+  }, [influencersWithPrices, pricePendingIds, scriptPendingIds, videoPendingIds, postPendingIds]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -211,7 +224,7 @@ export default function Review() {
         {tabConfig.map((tab) => {
           const Icon = tab.icon;
           const isActive = reviewTab === tab.key;
-          const count = pendingMap[tab.key].size;
+          const count = visibleCounts[tab.key];
           return (
             <button
               key={tab.key}
