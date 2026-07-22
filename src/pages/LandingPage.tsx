@@ -103,6 +103,18 @@ function GalaxyScene() {
   const idRef = useRef(0);
   const lastSpawnRef = useRef(0);
   const visibleRef = useRef(true);
+  // 主题感知：canvas 绘制的颜色需要根据亮/暗主题切换
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const isDarkRef = useRef(isDark);
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      const d = document.documentElement.classList.contains("dark");
+      isDarkRef.current = d;
+      setIsDark(d);
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   // Visibility
   useEffect(() => {
@@ -186,6 +198,11 @@ function GalaxyScene() {
 
     // ── Draw helpers ──
     function drawUFO(e: SpaceEntity, time: number) {
+      const dark = isDarkRef.current;
+      const domeC = dark ? `rgba(204,255,0,${e.alpha * 0.5})` : `rgba(101,163,13,${e.alpha * 0.5})`;
+      const bodyC = dark ? `rgba(160,220,255,${e.alpha * 0.65})` : `rgba(8,145,178,${e.alpha * 0.55})`;
+      const rimC = dark ? `rgba(160,220,255,${e.alpha * 0.5})` : `rgba(8,145,178,${e.alpha * 0.4})`;
+      const lightC = dark ? `rgba(204,255,0,${e.alpha * 0.85})` : `rgba(101,163,13,${e.alpha * 0.8})`;
       ctx!.save();
       ctx!.translate(e.x, e.y);
       // Tumbling: squash-stretch to simulate 3D rotation
@@ -195,26 +212,26 @@ function GalaxyScene() {
       ctx!.rotate(e.rotation * 0.3);
 
       // Dome
-      ctx!.fillStyle = `rgba(204,255,0,${e.alpha * 0.5})`;
+      ctx!.fillStyle = domeC;
       ctx!.beginPath();
       ctx!.arc(0, -e.size * 0.3, e.size * 0.35, Math.PI, 0);
       ctx!.fill();
 
       // Body
-      ctx!.fillStyle = `rgba(160,220,255,${e.alpha * 0.65})`;
+      ctx!.fillStyle = bodyC;
       ctx!.beginPath();
       ctx!.ellipse(0, 0, e.size, e.size * 0.32, 0, 0, Math.PI * 2);
       ctx!.fill();
 
       // Rim
-      ctx!.strokeStyle = `rgba(160,220,255,${e.alpha * 0.5})`;
+      ctx!.strokeStyle = rimC;
       ctx!.lineWidth = 0.8;
       ctx!.beginPath();
       ctx!.ellipse(0, e.size * 0.05, e.size * 0.9, e.size * 0.2, 0, 0, Math.PI * 2);
       ctx!.stroke();
 
       // Lights
-      ctx!.fillStyle = `rgba(204,255,0,${e.alpha * 0.85})`;
+      ctx!.fillStyle = lightC;
       for (let i = -2; i <= 2; i++) {
         ctx!.beginPath();
         ctx!.arc(i * e.size * 0.32, e.size * 0.08, 0.8, 0, Math.PI * 2);
@@ -242,13 +259,14 @@ function GalaxyScene() {
     }
 
     function drawShip(e: SpaceEntity) {
+      const dark = isDarkRef.current;
       ctx!.save();
       ctx!.translate(e.x, e.y);
       // Point toward movement direction
       const angle = Math.atan2(e.vy, e.vx);
       ctx!.rotate(angle);
       // Body
-      ctx!.fillStyle = `rgba(255,255,255,${e.alpha * 0.8})`;
+      ctx!.fillStyle = dark ? `rgba(255,255,255,${e.alpha * 0.8})` : `rgba(70,70,70,${e.alpha * 0.7})`;
       ctx!.beginPath();
       ctx!.moveTo(e.size, 0);
       ctx!.lineTo(-e.size * 0.5, -e.size * 0.4);
@@ -257,7 +275,7 @@ function GalaxyScene() {
       ctx!.closePath();
       ctx!.fill();
       // Engine glow
-      ctx!.fillStyle = `rgba(204,255,0,${e.alpha * 0.6})`;
+      ctx!.fillStyle = dark ? `rgba(204,255,0,${e.alpha * 0.6})` : `rgba(101,163,13,${e.alpha * 0.55})`;
       ctx!.beginPath();
       ctx!.arc(-e.size * 0.4, 0, e.size * 0.25, 0, Math.PI * 2);
       ctx!.fill();
@@ -269,21 +287,26 @@ function GalaxyScene() {
       globalRotRef.current += 0.0004;
       const { W, H, CX, CY, maxR } = dimsRef.current;
       const gr = globalRotRef.current;
+      const dark = isDarkRef.current;
+      // 主题配色：暗色=黑底酸绿；亮色=暖白底深绿
+      const bgTrail = dark ? "rgba(5, 5, 5, 0.15)" : "rgba(246, 246, 240, 0.15)";
+      const glow = (a: number) => dark ? `rgba(204,255,0,${a})` : `rgba(101,163,13,${a})`;
+      const cyan = (a: number) => dark ? `rgba(160,220,255,${a})` : `rgba(8,145,178,${a})`;
 
-      ctx!.fillStyle = "rgba(5, 5, 5, 0.15)";
+      ctx!.fillStyle = bgTrail;
       ctx!.fillRect(0, 0, W, H);
 
       // ── Center glow ──
       const cg = ctx!.createRadialGradient(CX, CY, 0, CX, CY, maxR * 0.05);
-      cg.addColorStop(0, "rgba(204,255,0,0.45)");
-      cg.addColorStop(0.5, "rgba(204,255,0,0.08)");
-      cg.addColorStop(1, "rgba(204,255,0,0)");
+      cg.addColorStop(0, glow(dark ? 0.45 : 0.35));
+      cg.addColorStop(0.5, glow(0.08));
+      cg.addColorStop(1, glow(0));
       ctx!.fillStyle = cg;
       ctx!.beginPath(); ctx!.arc(CX, CY, maxR * 0.05, 0, Math.PI * 2); ctx!.fill();
 
       const og = ctx!.createRadialGradient(CX, CY, maxR * 0.12, CX, CY, maxR * 0.35);
-      og.addColorStop(0, "rgba(204,255,0,0.025)");
-      og.addColorStop(1, "rgba(0,0,0,0)");
+      og.addColorStop(0, glow(0.025));
+      og.addColorStop(1, dark ? "rgba(0,0,0,0)" : "rgba(246,246,240,0)");
       ctx!.fillStyle = og;
       ctx!.beginPath(); ctx!.arc(CX, CY, maxR * 0.35, 0, Math.PI * 2); ctx!.fill();
 
@@ -326,7 +349,7 @@ function GalaxyScene() {
             const t = e.trail[ti];
             const tPrev = e.trail[ti - 1];
             const ta = (ti / e.trail.length) * t.alpha;
-            ctx!.strokeStyle = e.type === "ship" ? `rgba(204,255,0,${ta * 0.5})` : e.type === "ufo" ? `rgba(160,220,255,${ta * 0.3})` : `rgba(200,200,200,${ta * 0.25})`;
+            ctx!.strokeStyle = e.type === "ship" ? glow(ta * 0.5) : e.type === "ufo" ? cyan(ta * 0.3) : `rgba(140,140,140,${ta * 0.35})`;
             ctx!.lineWidth = e.type === "ship" ? 1.5 : 0.8;
             ctx!.beginPath();
             ctx!.moveTo(tPrev.x, tPrev.y);
@@ -345,7 +368,7 @@ function GalaxyScene() {
       for (const line of linesRef.current) {
         const op = line.opacity;
         if (op <= 0.01) continue;
-        ctx!.strokeStyle = `rgba(204,255,0,${op * 0.45})`;
+        ctx!.strokeStyle = glow(op * 0.45);
         ctx!.lineWidth = 1;
         ctx!.beginPath();
         ctx!.moveTo(line.px, line.py);
@@ -354,14 +377,14 @@ function GalaxyScene() {
 
         const rp = 0.7 + Math.sin(time * 0.06) * 0.3;
         const rR = 7 + rp * 5;
-        ctx!.fillStyle = `rgba(204,255,0,${op * 0.06})`;
+        ctx!.fillStyle = glow(op * 0.06);
         ctx!.beginPath(); ctx!.arc(line.px, line.py, rR * 2, 0, Math.PI * 2); ctx!.fill();
-        ctx!.fillStyle = `rgba(204,255,0,${op * 0.18})`;
+        ctx!.fillStyle = glow(op * 0.18);
         ctx!.beginPath(); ctx!.arc(line.px, line.py, rR, 0, Math.PI * 2); ctx!.fill();
-        ctx!.strokeStyle = `rgba(204,255,0,${op * 0.65})`;
+        ctx!.strokeStyle = glow(op * 0.65);
         ctx!.lineWidth = 1.5;
         ctx!.beginPath(); ctx!.arc(line.px, line.py, rR, 0, Math.PI * 2); ctx!.stroke();
-        ctx!.fillStyle = `rgba(255,255,255,${op * 0.9})`;
+        ctx!.fillStyle = dark ? `rgba(255,255,255,${op * 0.9})` : `rgba(70,110,20,${op * 0.9})`;
         ctx!.beginPath(); ctx!.arc(line.px, line.py, 3, 0, Math.PI * 2); ctx!.fill();
       }
 
@@ -375,7 +398,7 @@ function GalaxyScene() {
         if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
         const alpha = p.alpha * (1 - p.r * 0.4) * pulseMul;
         const sz = p.size * (0.7 + pulseMul * 0.5);
-        const cR = 204, cG = 255, cB = 100 + p.arm * 25;
+        const cR = dark ? 204 : 90 + p.arm * 8, cG = dark ? 255 : 150 + p.arm * 6, cB = dark ? 100 + p.arm * 25 : 13;
         if (sz < 1) {
           ctx!.fillStyle = `rgba(${cR},${cG},${cB},${alpha})`;
           ctx!.fillRect(x - sz * 0.5, y - sz * 0.5, sz, sz);
@@ -389,9 +412,9 @@ function GalaxyScene() {
 
       // ── Core ──
       const cp = 0.8 + Math.sin(time * 0.025) * 0.2;
-      ctx!.fillStyle = `rgba(255,255,220,${cp})`;
+      ctx!.fillStyle = dark ? `rgba(255,255,220,${cp})` : `rgba(70,110,20,${cp})`;
       ctx!.beginPath(); ctx!.arc(CX, CY, 2.5, 0, Math.PI * 2); ctx!.fill();
-      ctx!.strokeStyle = `rgba(204,255,0,${0.12 * cp})`;
+      ctx!.strokeStyle = glow(0.12 * cp);
       ctx!.lineWidth = 0.5;
       const fl = 14 * cp;
       ctx!.beginPath();
@@ -490,7 +513,7 @@ function GalaxyScene() {
       <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
         {cards.map((c) => (
           <div key={c.id} className="absolute" style={{ left: c.x, top: c.y, transform: `translate(-50%,-50%) scale(${c.scale})`, opacity: c.opacity }}>
-            <div className="bg-base/70 backdrop-blur-sm border border-brand/10 rounded-xl px-3.5 py-3 w-[185px]" style={{ boxShadow: "0 0 20px rgba(204,255,0,0.03), 0 4px 16px rgba(0,0,0,0.5)" }}>
+            <div className="bg-base/70 backdrop-blur-sm border border-brand/10 rounded-xl px-3.5 py-3 w-[185px]" style={{ boxShadow: isDark ? "0 0 20px rgba(204,255,0,0.03), 0 4px 16px rgba(0,0,0,0.5)" : "0 4px 16px rgba(0,0,0,0.12)" }}>
               <div className="flex items-center gap-2.5 mb-2">
                 <img src={c.kol.avatar} alt={c.kol.name} className="w-8 h-8 rounded-full object-cover border border-brand/15" />
                 <div>

@@ -120,9 +120,19 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **创建者展示**：管理员视角卡片右下角 `by 用户名` 高亮（InfluencerCard creatorName prop）；
   创建者筛选改为前端过滤（allInfluencers memo），下拉选项基于未筛选列表构建
 
-## 性能（2026-07-22）
+## 性能与准实时同步（2026-07-22）
 - trpc.tsx QueryClient 全局 `staleTime: 15000` + `refetchOnWindowFocus: false`（通知 30s 轮询不受影响）
 - 报价/脚本/视频/发布审核 mutation、分类展开、审核报价全部 onMutate 乐观更新 + 失败回滚
+- **准实时数据同步**：NotificationBell 收到任何 SSE 新通知时，失效 influencer/cardCategory/negotiation/
+  scriptReview/videoReview/post 等数据查询——所有数据变更本就会产生通知，受影响用户页面秒级自动刷新；
+  轮询降级模式下未读数增加时同样触发。未引入 WebSocket/第三方推送服务（Vercel serverless 不适合长连接）
+- **数据页（Analytics）**：管理员可按创建者筛选；发布数据行新增「合作价格」列（= 该网红最后一次审核报价，
+  即 influencers.adminPrice）；「导出 Excel」按当前筛选结果生成 SpreadsheetML .xls（零依赖，Excel/WPS 直接打开）
+- **工作台（Dashboard）**：发布数据概览与数据页同口径隔离（普通用户只统计自己可见网红的发布数据）；
+  顶部新增「网红卡片分布」四分类计数（cardCategory.statusCounts：普通用户统计自己分类，管理员全站去重统计）
+- **落地页双主题**：GalaxyScene 通过 MutationObserver 监听 html.dark，亮色主题用暖白底 + 深绿粒子/线条，
+  暗色保持原黑底酸绿
+
 
 ## 双主题（2026-07-21 上线）
 - **浅色为默认主题**：暖白底 #F6F6F0 + 白卡片；酸绿 #CCFF00 保留给按钮/高亮（压黑字），

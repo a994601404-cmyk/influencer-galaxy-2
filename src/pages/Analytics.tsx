@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/providers/trpc";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserList } from "@/lib/influencer-api";
 import {
   TrendingUp,
   Eye,
@@ -12,6 +14,7 @@ import {
   Trash2,
   Search,
   DollarSign,
+  Download,
 } from "lucide-react";
 
 function formatNumber(num: number): string {
@@ -21,16 +24,28 @@ function formatNumber(num: number): string {
 }
 
 export default function Analytics() {
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"date" | "exposures" | "likes" | "engagement">("date");
 
   // Fetch data from backend
   const { data: allPosts = [] } = trpc.post.listAll.useQuery();
   const { data: listData } = trpc.influencer.list.useQuery();
+  const { data: allUsers } = useUserList();
   const influencers = (listData?.items ?? []).filter(
     (item: any) => item != null && item.id != null
   );
+
+  // unionId → 用户名
+  const creatorNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (allUsers || []).forEach((u: any) => {
+      if (u?.unionId) map.set(u.unionId, u.name || u.email || `用户#${u.id}`);
+    });
+    return map;
+  }, [allUsers]);
   const utils = trpc.useUtils();
   const deletePost = trpc.post.delete.useMutation({
     onSuccess: () => {
@@ -41,9 +56,9 @@ export default function Analytics() {
 
   // Build influencer map
   const infMap = useMemo(() => {
-    const map = new Map<number, { name: string; handle: string; avatar: string; platform: string; adminPrice: number }>();
+    const map = new Map<number, { name: string; handle: string; avatar: string; platform: string; adminPrice: number; createdByUnionId: string }>();
     influencers.forEach((inf: any) => {
-      map.set(inf.id, { name: inf.name, handle: inf.handle, avatar: inf.avatar || "", platform: inf.platform, adminPrice: inf.adminPrice || 0 });
+      map.set(inf.id, { name: inf.name, handle: inf.handle, avatar: inf.avatar || "", platform: inf.platform, adminPrice: inf.adminPrice || 0, createdByUnionId: inf.createdByUnionId || "" });
     });
     return map;
   }, [influencers]);
@@ -60,10 +75,21 @@ export default function Analytics() {
           influencerAvatar: inf?.avatar || "",
           influencerPlatform: inf?.platform || "",
           adminPrice: inf?.adminPrice || 0,
+          createdByUnionId: inf?.createdByUnionId || "",
+          creatorName: inf?.createdByUnionId ? (creatorNameMap.get(inf.createdByUnionId) || inf.createdByUnionId) : "",
         };
       })
       .filter((c: any) => c.influencerName !== "未知网红");
-  }, [allPosts, infMap]);
+  }, [allPosts, infMap, creatorNameMap]);
+
+  // 管理员按创建者筛选的选项
+  const creatorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    allCollabs.forEach((c: any) => {
+      if (c.createdByUnionId) map.set(c.createdByUnionId, c.creatorName || c.createdByUnionId);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [allCollabs]);
 
   // Stats
   const stats = useMemo(() => {
@@ -104,6 +130,9 @@ export default function Analytics() {
   // Filter & sort
   const filteredCollabs = useMemo(() => {
     let result = [...allCollabs];
+    if (isAdmin && creatorFilter !== "all") {
+      result = result.filter((c: any) => c.createdByUnionId === creatorFilter);
+    }
     if (platformFilter !== "all") {
       result = result.filter((c: any) => c.influencerPlatform === platformFilter);
     }
@@ -122,7 +151,37 @@ export default function Analytics() {
       case "engagement": result.sort((a: any, b: any) => (((b.likes || 0) + (b.comments || 0) + (b.shares || 0)) / Math.max(b.sevenDayExposures || b.nextDayExposures || 1, 1)) - (((a.likes || 0) + (a.comments || 0) + (a.shares || 0)) / Math.max(a.sevenDayExposures || a.nextDayExposures || 1, 1))); break;
     }
     return result;
-  }, [allCollabs, platformFilter, search, sortBy]);
+  }, [allCollabs, platformFilter, search, sortBy, creatorFilter, isAdmin]);
+
+  // 导出当前筛选结果为 Excel（SpreadsheetML .xls，Excel/WPS 直接打开）
+  const exportExcel = () => {
+    const esc = (v: any) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const headers = ["网红名称", "账号", "平台", "创建者", "合作价格($)", "次日曝光", "7日曝光", "点赞", "评论", "转发", "CPM($)", "备注", "发布日期"];
+    const rows = filteredCollabs.map((c: any) => {
+      const cpm = c.adminPrice > 0 && (c.sevenDayExposures || 0) > 0 ? ((c.adminPrice / c.sevenDayExposures) * 1000).toFixed(2) : "";
+      return [c.influencerName, c.influencerHandle, c.influencerPlatform, c.creatorName, c.adminPrice > 0 ? c.adminPrice : "", c.nextDayExposures || 0, c.sevenDayExposures || 0, c.likes || 0, c.comments || 0, c.shares || 0, cpm, c.notes || "", c.createdAt || ""];
+    });
+    const cell = (v: any) => {
+      const isNum = typeof v === "number";
+      return `<Cell><Data ss:Type="${isNum ? "Number" : "String"}">${esc(v)}</Data></Cell>`;
+    };
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="发布数据"><Table>
+<Row>${headers.map((h) => `<Cell><Data ss:Type="String">${esc(h)}</Data></Cell>`).join("")}</Row>
+${rows.map((r) => `<Row>${r.map(cell).join("")}</Row>`).join("\n")}
+</Table></Worksheet></Workbook>`;
+    const blob = new Blob(["﻿" + xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    a.href = url;
+    a.download = `发布数据_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const platformOptions = useMemo(() => [...new Set(influencers.map((i: any) => i.platform))], [influencers]);
 
@@ -191,6 +250,13 @@ export default function Analytics() {
             <option value="all">全部平台</option>
             {platformOptions.map((p: string) => <option key={p} value={p}>{p}</option>)}
           </select>
+          {isAdmin && (
+            <select value={creatorFilter} onChange={(e) => setCreatorFilter(e.target.value)}
+              className="bg-base border border-line rounded-xl px-3 py-2.5 text-sm text-content focus:outline-none focus:border-brand/30">
+              <option value="all">全部用户</option>
+              {creatorOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
             className="bg-base border border-line rounded-xl px-3 py-2.5 text-sm text-content focus:outline-none focus:border-brand/30">
             <option value="date">按日期</option>
@@ -198,6 +264,14 @@ export default function Analytics() {
             <option value="likes">按点赞</option>
             <option value="engagement">按互动率</option>
           </select>
+          <button
+            onClick={exportExcel}
+            disabled={filteredCollabs.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-lime text-black text-sm font-semibold hover:bg-lime transition-all disabled:opacity-40"
+            title="导出当前筛选结果为 Excel"
+          >
+            <Download className="w-4 h-4" />导出 Excel
+          </button>
         </div>
       </div>
 
@@ -243,7 +317,11 @@ export default function Analytics() {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-5 gap-4 mt-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mt-2">
+                    <div>
+                      <p className="text-[10px] text-faint">合作价格</p>
+                      <p className="text-sm font-bold text-cy">{c.adminPrice > 0 ? `$${c.adminPrice.toLocaleString()}` : "—"}</p>
+                    </div>
                     <div>
                       <p className="text-[10px] text-faint">次日曝光</p>
                       <p className="text-sm font-bold text-content">{formatNumber(c.nextDayExposures || 0)}</p>

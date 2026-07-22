@@ -71,11 +71,26 @@ export default function NotificationBell() {
   }, [notifications.length]);
 
   // Real-time delivery (SSE + polling fallback)
+  // 任何新通知都意味着有数据变更（审核/报价/卡片流转），同步失效相关查询，
+  // 让受影响用户的页面数据准实时刷新，无需手动刷新页面
+  const invalidateDataQueries = useCallback(() => {
+    utils.influencer.list.invalidate();
+    utils.cardCategory.list.invalidate();
+    utils.cardCategory.statusCounts.invalidate();
+    utils.negotiation.list.invalidate();
+    utils.negotiation.listAll.invalidate();
+    utils.scriptReview.listAll.invalidate();
+    utils.videoReview.listAll.invalidate();
+    utils.post.listAll.invalidate();
+  }, [utils]);
+
   const { mode, connected } = useNotificationRealtime(
     useCallback((data) => {
       // Refresh notification list & count
       utils.notification.list.invalidate();
       utils.notification.unreadCount.invalidate();
+      // Sync underlying data (card moved out of 审核中, new review items, etc.)
+      invalidateDataQueries();
       // Show toast
       setToast({ title: data.title, message: data.message });
       setTimeout(() => setToast(null), 4000);
@@ -83,18 +98,26 @@ export default function NotificationBell() {
       if (data.type && typeMap[data.type] && data.relatedId) {
         setSignal(data.relatedId, typeMap[data.type], data.createdAt);
       }
-    }, [utils])
+    }, [utils, typeMap, invalidateDataQueries])
   );
 
   // Listen for polling tick events (fallback mode)
+  // 未读数增加 = 有新通知 = 有数据变更，此时同步失效数据查询
+  const lastUnreadRef = useRef<number>(0);
   useEffect(() => {
     const handler = () => {
-      refetchCount();
+      refetchCount().then((res) => {
+        const n = res.data ?? 0;
+        if (lastUnreadRef.current > 0 && n > lastUnreadRef.current) {
+          invalidateDataQueries();
+        }
+        lastUnreadRef.current = n;
+      });
       if (open) refetchList();
     };
     window.addEventListener("notification_poll_tick", handler);
     return () => window.removeEventListener("notification_poll_tick", handler);
-  }, [refetchCount, refetchList, open]);
+  }, [refetchCount, refetchList, open, invalidateDataQueries]);
 
   // Close dropdown on outside click
   useEffect(() => {

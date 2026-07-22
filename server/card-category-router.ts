@@ -175,6 +175,39 @@ export const cardCategoryRouter = createRouter({
       return { success: true };
     }),
 
+  // 四个默认分类的卡片数量统计：普通用户只统计自己分类下的卡片，
+  // 管理员统计全站（同一网红在同一分类名下只计一次，剔除垃圾箱）
+  statusCounts: authedQuery
+    .query(async ({ ctx }) => {
+      const conn = await getRawConnection();
+      const names = ["审核中", "对接中", "已发布", "网红库"];
+      const isAdmin = ctx.user.role === "admin";
+      const [rows] = isAdmin
+        ? await conn.execute(
+            `SELECT cat.name AS name, COUNT(DISTINCT c.influencerId) AS n
+             FROM cardCategoryItems c
+             JOIN cardCategories cat ON c.categoryId = cat.id
+             JOIN influencers i ON c.influencerId = i.id
+             WHERE cat.name IN ('审核中','对接中','已发布','网红库') AND i.hidden != 2
+             GROUP BY cat.name`
+          )
+        : await conn.execute(
+            `SELECT cat.name AS name, COUNT(DISTINCT c.influencerId) AS n
+             FROM cardCategoryItems c
+             JOIN cardCategories cat ON c.categoryId = cat.id
+             JOIN influencers i ON c.influencerId = i.id
+             WHERE cat.userUnionId = ? AND cat.name IN ('审核中','对接中','已发布','网红库') AND i.hidden != 2
+             GROUP BY cat.name`,
+            [ctx.user.unionId]
+          );
+      const counts: Record<string, number> = {};
+      for (const name of names) counts[name] = 0;
+      for (const r of rows as any[]) {
+        if (r?.name) counts[r.name] = Number(r.n) || 0;
+      }
+      return counts;
+    }),
+
   // Move a card to another category
   moveCard: authedQuery
     .input(z.object({

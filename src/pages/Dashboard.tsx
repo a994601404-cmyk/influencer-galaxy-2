@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   getInfluencers,
   getCampaigns,
@@ -37,15 +37,28 @@ function formatNumber(num: number) {
 }
 
 export default function Dashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [trending, setTrending] = useState<TrendingTopic[]>([]);
   const [stats, setStats] = useState({ totalImpressions: 0, totalClicks: 0, totalConversions: 0, avgRoi: 0 });
   const [collabCount, setCollabCount] = useState(0);
 
-  // Fetch post records from backend
-  const { data: allPosts = [] } = trpc.post.listAll.useQuery();
+  // Fetch post records + visible influencers (server-isolated: 普通用户只有自己的网红)
+  const { data: allPostsRaw = [] } = trpc.post.listAll.useQuery();
+  const { data: listData } = trpc.influencer.list.useQuery();
+  const { data: statusCounts } = trpc.cardCategory.statusCounts.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  // 与数据页一致的隔离逻辑：只统计当前用户可见网红的发布数据
+  const allPosts = useMemo(() => {
+    if (!listData) return [];
+    const ids = new Set<number>(
+      (listData?.items ?? []).filter((i: any) => i?.id != null).map((i: any) => i.id)
+    );
+    return (allPostsRaw as any[]).filter((p) => p && ids.has(p.influencerId));
+  }, [allPostsRaw, listData]);
 
   useEffect(() => {
     setInfluencers(getInfluencers());
@@ -56,7 +69,7 @@ export default function Dashboard() {
   }, []);
 
   // Calculate post stats
-  const postStats = useState(() => {
+  const postStats = useMemo(() => {
     return {
       totalPosts: allPosts.length,
       totalSevenDayExposures: allPosts.reduce((s: number, p: any) => s + (p.sevenDayExposures || 0), 0),
@@ -64,16 +77,7 @@ export default function Dashboard() {
       totalComments: allPosts.reduce((s: number, p: any) => s + (p.comments || 0), 0),
       totalShares: allPosts.reduce((s: number, p: any) => s + (p.shares || 0), 0),
     };
-  })[0];
-
-  // Update postStats when allPosts changes
-  useEffect(() => {
-    postStats.totalPosts = allPosts.length;
-    postStats.totalSevenDayExposures = allPosts.reduce((s: number, p: any) => s + (p.sevenDayExposures || 0), 0);
-    postStats.totalLikes = allPosts.reduce((s: number, p: any) => s + (p.likes || 0), 0);
-    postStats.totalComments = allPosts.reduce((s: number, p: any) => s + (p.comments || 0), 0);
-    postStats.totalShares = allPosts.reduce((s: number, p: any) => s + (p.shares || 0), 0);
-  }, [allPosts, postStats]);
+  }, [allPosts]);
 
   return (
     <div className="space-y-8">
@@ -106,6 +110,34 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Category Status Counts */}
+      {isAuthenticated && statusCounts && (
+        <div>
+          <h2 className="text-sm font-bold text-content mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4 text-brand" />网红卡片分布
+            <span className="text-[10px] text-faint font-normal">
+              {isAdmin ? "全站统计" : "仅统计你创建的卡片"}
+            </span>
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { name: "审核中", color: "#f59e0b", desc: "等待管理员审核报价" },
+              { name: "对接中", color: "#06b6d4", desc: "合作对接进行中" },
+              { name: "已发布", color: "#65a30d", desc: "内容已发布上线" },
+              { name: "网红库", color: "#8b5cf6", desc: "备用网红资源" },
+            ].map((c) => (
+              <div key={c.name} className="card-surface p-4 hover-lift">
+                <p className="text-xl font-black tracking-tight" style={{ color: c.color }}>
+                  {statusCounts[c.name] ?? 0}
+                </p>
+                <p className="text-[11px] text-content font-semibold mt-0.5">{c.name}</p>
+                <p className="text-[10px] text-faint">{c.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards - Dense Grid: Post Stats */}
       <div>
