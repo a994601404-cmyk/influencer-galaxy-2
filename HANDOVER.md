@@ -105,6 +105,24 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **发布审核**：存在 `status='pending'` 的发布记录 → 同上
 - 卡片可点击打开详情弹窗；管理员在弹窗内完成审核；提交 → 通知管理员，审核 → 通知创建者
 - **计数徽标与卡片列表共用同一可见网红集合**（2026-07-22 修复：之前徽标统计含垃圾箱/孤儿记录导致虚高）
+- **卡片左上角显示「由***提交」**（2026-07-22 新增，Review.tsx creatorMap 来自 auth.list）
+- **审核报价详情同步**（2026-07-22 修复）：旧 useUpdateNegotiation 用 zod 会剥离的 influencerId 做精准
+  invalidate 导致 negotiation.list 永不刷新，已改为无参广域 invalidate + 乐观更新
+
+## 「审核中」锁定分类（2026-07-22 新增）
+- 默认置顶分类，cardCategory.list 服务端兜底：0 分类用户建 4 个默认分类（审核中/对接中/已发布/网红库）；
+  已有分类但缺「审核中」的老用户自动 insert 到 minOrder-1 置顶位
+- **锁定语义**：moveCard 任一端为「审核中」即拒绝；create/update/delete 禁止创建/改名/删除该分类
+- **自动流转**：新网红添加后前端 assignCard 进「审核中」；管理员 updateAdminPrice（price>0）或
+  setNotCooperating 时，服务端 moveOutOfReview 把该网红在所有人「审核中」里的卡片移到各自「对接中」（没有则创建）
+- 前端：琥珀色边框区分 + Lock 图标 + 提示文案；审核中分类内卡片禁用拖拽把手和移动菜单；
+  移动目标列表（卡片菜单/批量移动）均过滤掉「审核中」；handleDragEnd 拦截拖入
+- **创建者展示**：管理员视角卡片右下角 `by 用户名` 高亮（InfluencerCard creatorName prop）；
+  创建者筛选改为前端过滤（allInfluencers memo），下拉选项基于未筛选列表构建
+
+## 性能（2026-07-22）
+- trpc.tsx QueryClient 全局 `staleTime: 15000` + `refetchOnWindowFocus: false`（通知 30s 轮询不受影响）
+- 报价/脚本/视频/发布审核 mutation、分类展开、审核报价全部 onMutate 乐观更新 + 失败回滚
 
 ## 双主题（2026-07-21 上线）
 - **浅色为默认主题**：暖白底 #F6F6F0 + 白卡片；酸绿 #CCFF00 保留给按钮/高亮（压黑字），
