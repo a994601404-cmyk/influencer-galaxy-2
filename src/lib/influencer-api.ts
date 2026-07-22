@@ -242,16 +242,32 @@ export function useUpdateNegotiation() {
           ? old.map((n: any) => (n?.id === vars.id ? { ...n, ...(vars.adminPrice !== undefined ? { adminPrice: vars.adminPrice } : {}), ...(vars.notes !== undefined ? { notes: vars.notes } : {}) } : n))
           : old
       );
-      return { prevAll };
+      // 详情弹窗数据源 negotiation.list：调用方运行时会在 vars 上带 influencerId
+      // （zod 会剥离该字段，但 onMutate 拿到的是原始对象），有就同步乐观更新
+      const infId = (vars as any).influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.negotiation.list.cancel({ influencerId: infId });
+        prevList = utils.negotiation.list.getData({ influencerId: infId });
+        utils.negotiation.list.setData({ influencerId: infId }, (old: any) =>
+          Array.isArray(old)
+            ? old.map((n: any) => (n?.id === vars.id ? { ...n, ...(vars.adminPrice !== undefined ? { adminPrice: vars.adminPrice } : {}), ...(vars.notes !== undefined ? { notes: vars.notes } : {}) } : n))
+            : old
+        );
+      }
+      return { prevAll, prevList, infId };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prevAll) utils.negotiation.listAll.setData(undefined, ctx.prevAll);
+      if (ctx?.infId && ctx?.prevList) utils.negotiation.list.setData({ influencerId: ctx.infId }, ctx.prevList);
     },
     onSettled: (_data, _err, vars) => {
       // vars may not carry influencerId — invalidate broadly
       utils.negotiation.list.invalidate();
       utils.negotiation.listAll.invalidate();
       utils.influencer.list.invalidate();
+      // 审核报价生效后卡片会自动移出「审核中」，刷新分类
+      utils.cardCategory.list.invalidate();
     },
   });
 }

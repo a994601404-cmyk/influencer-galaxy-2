@@ -276,7 +276,9 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
     updateNeg.mutate({
       id: recordId,
       adminPrice: p,
-    }, {
+      // 仅用于前端乐观更新定位缓存，zod 会在服务端剥离该字段
+      influencerId: inf.id,
+    } as any, {
       onSuccess: () => { setEditingAdminPriceId(null); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
     });
   };
@@ -286,7 +288,8 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
     updateNeg.mutate({
       id: recordId,
       notes: tempNote,
-    }, {
+      influencerId: inf.id,
+    } as any, {
       onSuccess: () => { setEditingNoteId(null); setTempNote(""); }
     });
   };

@@ -53,7 +53,7 @@ async function fetchLatestPrices(influencerIds: number[]): Promise<Map<number, {
 
 // Move an influencer's cards out of the locked "审核中" category into
 // "对接中" once the admin has made a price decision
-async function moveOutOfReview(influencerId: number) {
+export async function moveOutOfReview(influencerId: number) {
   try {
     const conn = await getRawConnection();
     const [rows] = await conn.execute(

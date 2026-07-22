@@ -4,6 +4,7 @@ import { getDb, getRawConnection } from "./queries/connection.js";
 import { negotiationRecords, influencers } from "../db/schema.js";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { createNotification, getAdminUnionIds, getInfluencerCreator, getInfluencerName, getBeijingTimeFull } from "./notification-router.js";
+import { moveOutOfReview } from "./influencer-router.js";
 
 export const negotiationRouter = createRouter({
   // List all negotiation records, optionally filtered by influencerIds
@@ -114,6 +115,11 @@ export const negotiationRouter = createRouter({
         }
       } catch { /* ignore notification failure */ }
 
+      // 管理员直接创建带审核报价的谈价记录时，同样自动移出「审核中」
+      if (ctx.user.role === "admin" && input.adminPrice > 0) {
+        await moveOutOfReview(input.influencerId);
+      }
+
       const row = await db.select().from(negotiationRecords).where(eq(negotiationRecords.id, insertId)).limit(1);
       return row[0];
     }),
@@ -149,6 +155,11 @@ export const negotiationRouter = createRouter({
           [input.adminPrice, nowStr2, row[0].influencerId]
         );
       } catch { /* ignore */ }
+
+      // 审核报价生效后，卡片自动从「审核中」移入「对接中」
+      if (input.adminPrice !== undefined && input.adminPrice > 0) {
+        await moveOutOfReview(row[0].influencerId);
+      }
 
       // Notify creator
       try {
