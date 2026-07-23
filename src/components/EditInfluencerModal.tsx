@@ -72,6 +72,9 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
   };
   const addLinkRow = () => setLinks((prev) => [...prev, { platform: "其他", url: "" }]);
   const removeLinkRow = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx));
+  // 存量卡片可能带有已下线的平台值（如小红书/抖音），保留下拉可选，避免编辑时显示空白
+  const linkPlatformOptions = [...LINK_PLATFORM_OPTIONS];
+  links.forEach((l) => { if (l.platform && !linkPlatformOptions.includes(l.platform)) linkPlatformOptions.push(l.platform); });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,7 +176,7 @@ export default function EditInfluencerModal({ influencer, open, onClose, onSaved
                     onChange={(e) => updateLink(idx, { platform: e.target.value })}
                     className="w-28 flex-shrink-0 bg-base border border-line rounded-xl px-2 py-2 text-xs text-content focus:outline-none focus:border-brand/30"
                   >
-                    {LINK_PLATFORM_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {linkPlatformOptions.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                   <input
                     type="url"

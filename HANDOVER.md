@@ -122,9 +122,14 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
   hook onError 补 alert 提示失败
 
 ## 弹窗层级与平台图标（2026-07-23 晚）
-- **编辑资料弹窗点不动的根因**：EditInfluencerModal 此前渲染在 shadcn Dialog（radix）内部，
-  radix modal 模式会锁焦点并屏蔽 DialogContent 外的指针事件。已移出 </Dialog> 之外（React 碎片包裹）。
-  教训：自定义 modal 组件一律不得嵌在 radix Dialog 里
+- **编辑资料弹窗点不动的真正根因**：radix Dialog 的 modal 模式通过 react-remove-scroll 给 body
+  加 `pointer-events:none`，只允许 DialogContent 内部（shard）接收点击——自定义弹窗即使移出 Dialog、
+  z-index 再高也点不动（第一次修复只移出 Dialog，无效）。**最终方案**：编辑弹窗打开期间给详情 Dialog
+  传 `modal={!editInfoOpen}` 临时切非 modal 释放指针锁，并用 onOpenChange 守卫阻断期间的关闭请求。
+  EditInfluencerModal 保持在 Dialog 之外（避免 DialogContent 的 transform 影响 fixed 定位）
+- **编辑弹窗存量卡片兼容**：旧领域键保留为可选项（allNiches 兜底）；旧单链接 profileUrl 经
+  parseProfileLinks 解析、"主页/链接"标签映射为"其他"；已下线平台值（小红书/抖音）在链接下拉中
+  动态保留，避免编辑旧卡时平台显示空白
 - **主页链接平台图标**：InfluencerCard 底行链接按 platform 渲染品牌 SVG（Instagram 渐变/TikTok 三色/
   YouTube 红/X 黑底白字），未识别平台回退 lucide ExternalLink；品牌色硬编码不随主题
 - **链接平台下拉**：LINK_PLATFORM_OPTIONS 移除小红书/抖音（AddInfluencerModal/EditInfluencerModal），

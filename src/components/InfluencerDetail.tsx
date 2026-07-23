@@ -452,7 +452,10 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    {/* 编辑资料弹窗打开期间把详情 Dialog 切为非 modal：radix modal 模式会给 body 加
+        pointer-events:none，锁死 DialogContent 之外的所有点击（z-index 再高也没用），
+        这是编辑弹窗"看得见但点不动"的根因；同时阻断期间对详情弹窗的关闭请求 */}
+    <Dialog open={open} modal={!editInfoOpen} onOpenChange={(v) => !v && !editInfoOpen && onClose()}>
       <DialogContent className="max-w-3xl bg-surface border border-line text-content max-h-[85vh] overflow-y-auto scrollbar-thin rounded-2xl">
         <DialogHeader><DialogTitle className="sr-only">{inf.name}</DialogTitle></DialogHeader>
 
