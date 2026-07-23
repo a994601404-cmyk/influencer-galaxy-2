@@ -349,16 +349,27 @@ export const cardCategoryRouter = createRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       const conn = await getRawConnection();
-      // Check if already assigned
+      const unionId = ctx.user.unionId;
+      // 目标分类必须属于当前用户，防止把卡片塞进他人分类
+      const [catRows] = await conn.execute(
+        `SELECT id FROM cardCategories WHERE id = ? AND userUnionId = ?`,
+        [input.categoryId, unionId]
+      );
+      if ((catRows as any[]).length === 0) {
+        throw new Error("分类不存在或无权限");
+      }
+      // 只查当前用户自己分类下的卡片行，避免误改他人分类中的同名卡片
       const [existing] = await conn.execute(
-        `SELECT id FROM cardCategoryItems WHERE influencerId = ?`,
-        [input.influencerId]
+        `SELECT c.id FROM cardCategoryItems c
+         JOIN cardCategories cat ON cat.id = c.categoryId
+         WHERE c.influencerId = ? AND cat.userUnionId = ?`,
+        [input.influencerId, unionId]
       );
       if ((existing as any[]).length > 0) {
-        // Update category
+        // Update category (scoped to the user's own row)
         await conn.execute(
-          `UPDATE cardCategoryItems SET categoryId = ? WHERE influencerId = ?`,
-          [input.categoryId, input.influencerId]
+          `UPDATE cardCategoryItems SET categoryId = ? WHERE id = ?`,
+          [input.categoryId, (existing as any[])[0].id]
         );
       } else {
         // Get max sortOrder
