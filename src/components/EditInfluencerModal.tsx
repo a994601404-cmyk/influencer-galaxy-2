@@ -14,7 +14,7 @@ interface Props {
   onSaved: (updated: any) => void;
 }
 
-const LINK_PLATFORM_OPTIONS = ["Instagram", "TikTok", "YouTube", "X", "小红书", "抖音", "其他"];
+const LINK_PLATFORM_OPTIONS = ["Instagram", "TikTok", "YouTube", "X", "其他"];
 
 interface LinkRow {
   platform: string;

@@ -45,13 +45,16 @@ export const cardCategoryRouter = createRouter({
       const categories = catRows as any[];
 
       // Get all items with influencer data (exclude trashed cards)
+      // 非管理员只返回自己创建的卡片——JOIN 不过滤会把他人的卡泄漏进分类视图
+      // （泄漏的卡 canEdit=false 没有删除入口，表现为"不能删自己的卡"）
       const [itemRows] = await conn.execute(
         `SELECT c.*, i.* FROM cardCategoryItems c
          JOIN influencers i ON c.influencerId = i.id
          WHERE c.categoryId IN (SELECT id FROM cardCategories WHERE userUnionId = ?)
            AND i.hidden != 2
+           ${isAdmin ? "" : "AND i.createdByUnionId = ?"}
          ORDER BY c.isPinned DESC, c.sortOrder ASC`,
-        [unionId]
+        isAdmin ? [unionId] : [unionId, unionId]
       );
       const items = (itemRows as any[]).map((row) => ({
         id: row.id,

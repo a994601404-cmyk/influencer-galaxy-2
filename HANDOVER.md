@@ -94,6 +94,9 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **assignCard owner 收口（07-23）**：目标分类必须归属当前用户（校验 cardCategories.userUnionId），
   查询/更新卡片行限定在自己分类下（JOIN cardCategories），修复此前按 influencerId 裸 UPDATE
   可能误改他人分类中同名卡片的隐患
+- **cardCategory.list 分类视图收口（07-23 晚）**：分类内 items 查询 JOIN influencers 时未过滤创建者，
+  导致管理员创建的卡片漏进普通用户的分类视图（普通用户对这些卡 canEdit=false，菜单里看不到删除项，
+  表象是"普通用户删不了自己的卡片"）。已加 `createdByUnionId` 过滤：非管理员只看自己创建的卡
 
 ## 网红页交互（2026-07-21 重写）
 - **乐观更新**：删除/隐藏/置顶/卡片排序/分类排序/移动分类全部 onMutate 乐观更新 + 失败回滚 + onSettled 失效同步，点击秒响应（src/lib/influencer-api.ts）
@@ -114,7 +117,18 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **计数徽标与卡片列表共用同一可见网红集合**（2026-07-22 修复：之前徽标统计含垃圾箱/孤儿记录导致虚高）
 - **卡片左上角显示「由***提交」**（2026-07-22 新增，Review.tsx creatorMap 来自 auth.list）
 - **审核报价详情同步**（2026-07-22 修复）：旧 useUpdateNegotiation 用 zod 会剥离的 influencerId 做精准
-  invalidate 导致 negotiation.list 永不刷新，已改为无参广域 invalidate + 乐观更新
+  invalidate 导致 negotiation.list 永不刷新，已改为无参广域 invalidate + 乐观更新；
+  07-23 晚：审核报价输入框在点击确认时**立即收起**（setEditingAdminPriceId(null) 前置，不再等服务器往返），
+  hook onError 补 alert 提示失败
+
+## 弹窗层级与平台图标（2026-07-23 晚）
+- **编辑资料弹窗点不动的根因**：EditInfluencerModal 此前渲染在 shadcn Dialog（radix）内部，
+  radix modal 模式会锁焦点并屏蔽 DialogContent 外的指针事件。已移出 </Dialog> 之外（React 碎片包裹）。
+  教训：自定义 modal 组件一律不得嵌在 radix Dialog 里
+- **主页链接平台图标**：InfluencerCard 底行链接按 platform 渲染品牌 SVG（Instagram 渐变/TikTok 三色/
+  YouTube 红/X 黑底白字），未识别平台回退 lucide ExternalLink；品牌色硬编码不随主题
+- **链接平台下拉**：LINK_PLATFORM_OPTIONS 移除小红书/抖音（AddInfluencerModal/EditInfluencerModal），
+  存量小红书/抖音链接正常显示（回退通用图标）；网红主平台 enum（xiaohongshu/douyin）未动
 
 ## 「审核中」锁定分类（2026-07-22 新增，07-23 完善流转）
 - 默认置顶分类，cardCategory.list 服务端兜底：0 分类用户建 4 个默认分类（审核中/对接中/已发布/网红库）；

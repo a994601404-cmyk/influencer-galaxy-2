@@ -46,6 +46,54 @@ interface InfluencerCardProps {
   creatorName?: string;
 }
 
+// 主页链接平台图标：按链接备注的平台显示对应品牌 logo，未识别的平台回退到通用链接图标
+function LinkPlatformIcon({ platform }: { platform: string }) {
+  const p = platform.toLowerCase();
+  if (p.includes("instagram") || p === "ig") {
+    return (
+      <svg viewBox="0 0 24 24" className="w-3 h-3" aria-label="Instagram">
+        <defs>
+          <linearGradient id="ig-grad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stopColor="#FEDA75" />
+            <stop offset=".45" stopColor="#D62976" />
+            <stop offset="1" stopColor="#962FBF" />
+          </linearGradient>
+        </defs>
+        <rect x="1.5" y="1.5" width="21" height="21" rx="5.5" fill="url(#ig-grad)" />
+        <circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" strokeWidth="1.9" />
+        <circle cx="17.4" cy="6.6" r="1.3" fill="#fff" />
+      </svg>
+    );
+  }
+  if (p.includes("tiktok") || p === "tt") {
+    const note = "M16.6 3c.4 2.1 1.9 3.7 4.1 3.9v3c-1.6 0-3-.5-4.1-1.3v6.2A5.9 5.9 0 1 1 10.6 9v3.1a2.8 2.8 0 1 0 2.9 2.8V3h3.1Z";
+    return (
+      <svg viewBox="0 0 24 24" className="w-3 h-3" aria-label="TikTok">
+        <path fill="#25F4EE" transform="translate(-0.6,0.35)" d={note} />
+        <path fill="#FE2C55" transform="translate(0.6,-0.35)" d={note} />
+        <path fill="#111" d={note} />
+      </svg>
+    );
+  }
+  if (p.includes("youtube") || p === "yt") {
+    return (
+      <svg viewBox="0 0 24 24" className="w-3 h-3" aria-label="YouTube">
+        <path fill="#FF0000" d="M23 12s0-3.85-.46-5.58a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2C1 8.15 1 12 1 12s0 3.85.46 5.58a2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2C23 15.85 23 12 23 12Z" />
+        <path fill="#fff" d="m9.75 15.5 6-3.5-6-3.5v7Z" />
+      </svg>
+    );
+  }
+  if (p === "x" || p.includes("twitter")) {
+    return (
+      <svg viewBox="0 0 24 24" className="w-3 h-3" aria-label="X">
+        <rect x="1" y="1" width="22" height="22" rx="4.5" fill="#111" />
+        <path fill="#fff" d="M17.2 5.5h2.6l-5.7 6.5 6.7 8.9h-5.2l-4.1-5.4-4.7 5.4H4.2l6.1-7L3.9 5.5h5.4l3.7 4.9 4.2-4.9Zm-.9 11.8h1.4L8.2 6.9H6.7l9.6 10.4Z" transform="scale(0.92) translate(1,0.6)" />
+      </svg>
+    );
+  }
+  return <ExternalLink className="w-3 h-3" />;
+}
+
 function SignalDot({ type }: { type: string }) {
   const labels: Record<string, string> = { price: "谈价", script: "脚本", video: "视频" };
   return (
@@ -309,7 +357,7 @@ export default function InfluencerCard({
               title={link.platform}
               className="w-5 h-5 rounded-md bg-hover flex items-center justify-center text-cy/70 hover:text-cy transition-colors"
             >
-              <ExternalLink className="w-3 h-3" />
+              <LinkPlatformIcon platform={link.platform} />
             </a>
           ))}
           {creatorName && (

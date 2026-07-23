@@ -284,14 +284,17 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   const handleAdminPriceSave = (recordId: number) => {
     if (!isAdmin) return;
     const p = parseInt(tempAdminPrice) || 0;
+    // 立即收起输入框：useUpdateNegotiation 已乐观写入缓存，审核价即时展示；
+    // 失败由 hook 回滚并 alert，无需等服务器往返
+    setEditingAdminPriceId(null);
+    setPriceSaved(true);
+    setTimeout(() => setPriceSaved(false), 2000);
     updateNeg.mutate({
       id: recordId,
       adminPrice: p,
       // 仅用于前端乐观更新定位缓存，zod 会在服务端剥离该字段
       influencerId: inf.id,
-    } as any, {
-      onSuccess: () => { setEditingAdminPriceId(null); setPriceSaved(true); setTimeout(() => setPriceSaved(false), 2000); }
-    });
+    } as any);
   };
 
   // Admin edits note for a negotiation record
@@ -448,6 +451,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl bg-surface border border-line text-content max-h-[85vh] overflow-y-auto scrollbar-thin rounded-2xl">
         <DialogHeader><DialogTitle className="sr-only">{inf.name}</DialogTitle></DialogHeader>
@@ -1120,14 +1124,17 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
           </div>
         )}
       </DialogContent>
-      {/* 编辑资料弹窗（名称/平台/领域/性别/国家/链接/备注） */}
-      <EditInfluencerModal
-        influencer={inf}
-        open={editInfoOpen}
-        onClose={() => setEditInfoOpen(false)}
-        onSaved={(updated) => { if (onUpdate) onUpdate(updated); }}
-      />
     </Dialog>
+    {/* 编辑资料弹窗（名称/平台/领域/性别/国家/链接/备注）
+        必须渲染在 Dialog 之外：radix Dialog modal 模式会锁定焦点并屏蔽
+        DialogContent 外的指针事件，放在内部会导致编辑弹窗无法点击 */}
+    <EditInfluencerModal
+      influencer={inf}
+      open={editInfoOpen}
+      onClose={() => setEditInfoOpen(false)}
+      onSaved={(updated) => { if (onUpdate) onUpdate(updated); }}
+    />
+    </>
   );
 }
 

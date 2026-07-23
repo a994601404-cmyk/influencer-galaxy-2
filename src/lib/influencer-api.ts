@@ -357,6 +357,7 @@ export function useUpdateNegotiation() {
     onError: (_err, _vars, ctx) => {
       if (ctx?.prevAll) utils.negotiation.listAll.setData(undefined, ctx.prevAll);
       if (ctx?.infId && ctx?.prevList) utils.negotiation.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      alert(_err.message || "保存失败，请重试");
     },
     onSettled: (_data, _err, vars) => {
       // vars may not carry influencerId — invalidate broadly
