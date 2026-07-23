@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCreateInfluencer, useCreateNegotiation } from "@/lib/influencer-api";
-import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, prefetchRates } from "@/lib/currency";
+import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, getExchangeRate, prefetchRates } from "@/lib/currency";
 import { COOP_TYPE_OPTIONS, coopTypesToJson, type CoopTypeItem } from "@/lib/coop-types";
 import { SELECTABLE_NICHES } from "@/lib/niche-map";
 import CountrySelect from "@/components/CountrySelect";
@@ -161,6 +161,9 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
     const localAmount = parseAmountInput(formLocalPrice);
     const usdPrice = localAmount > 0 ? await convertToUSD(localAmount, formCurrency) : 0;
     const isForeign = formCurrency !== "USD" && localAmount > 0;
+    // 汇率快照：记录本次提交实际使用的汇率，供审计对账
+    const rateVal = isForeign ? await getExchangeRate(formCurrency).catch(() => null) : null;
+    const rateSnapshot = rateVal != null ? String(rateVal) : null;
     createMutation.mutate({
       name: formName.trim(),
       handle: deriveHandle(formName, validLinks),
@@ -184,6 +187,7 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
             adminPrice: 0,
             userPriceLocal: isForeign ? localAmount : null,
             userPriceCurrency: isForeign ? formCurrency : null,
+            exchangeRate: rateSnapshot,
             notes: `添加网红 - 报价 ${formCurrency} ${formLocalPrice} = USD ${usdPrice}`,
             createdAt: nowBeijing(),
           });

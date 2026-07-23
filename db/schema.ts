@@ -84,6 +84,8 @@ export const negotiationRecords = mysqlTable("negotiationRecords", {
   // 原货币报价（非美元时记录用户填写原值）
   userPriceLocal: int("userPriceLocal"),
   userPriceCurrency: varchar("userPriceCurrency", { length: 8 }),
+  // 提交时实际使用的汇率快照（1 单位原货币 = X USD），用于审计对账
+  exchangeRate: varchar("exchangeRate", { length: 32 }),
   notes: text("notes"),
   isTest: int("isTest").default(0), // 0 = production, 1 = test data
   createdAt: varchar("createdAt", { length: 20 }).notNull(), // YYYY-MM-DD

@@ -14,7 +14,7 @@ function nowBeijing(): string {
   return `${bj.getFullYear()}-${pad(bj.getMonth() + 1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
 }
 import { displayCountry } from "@/lib/countries";
-import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, formatQuoteUSD, prefetchRates } from "@/lib/currency";
+import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, formatQuoteUSD, getExchangeRate, prefetchRates } from "@/lib/currency";
 import { compressVideo, type CompressProgress } from "@/lib/video-compress";
 import { storeVideoFile, getVideoFile, genVideoKey } from "@/lib/video-storage";
 import {
@@ -344,12 +344,15 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
     // 与添加网红一致：按所选货币折算为 USD 存储
     const userPriceUsd = rawUserPrice > 0 ? await convertToUSD(rawUserPrice, negCurrency).catch(() => convertToUSDSync(rawUserPrice, negCurrency)) : 0;
     const isForeign = negCurrency !== "USD" && rawUserPrice > 0;
+    const rateVal = isForeign ? await getExchangeRate(negCurrency).catch(() => null) : null;
+    const rateSnapshot = rateVal != null ? String(rateVal) : null;
     createNeg.mutate({
       influencerId: inf.id,
       userPrice: userPriceUsd,
       adminPrice: parseAmountInput(negAdminPrice),
       userPriceLocal: isForeign ? rawUserPrice : null,
       userPriceCurrency: isForeign ? negCurrency : null,
+      exchangeRate: rateSnapshot,
       notes: negNotes,
       createdAt: nowBeijing(),
     }, {
@@ -642,6 +645,13 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                       <div>
                         <p className="text-[10px] text-sub mb-0.5">网红报价 {n.createdAt && <span className="text-[9px] text-faint">· {n.createdAt}</span>}</p>
                         <p className="text-sm font-bold text-brand">{n.userPrice > 0 ? formatQuoteUSD(n.userPrice, n.userPriceLocal, n.userPriceCurrency) : "—"}</p>
+                        {n.exchangeRate && n.userPriceCurrency && (
+                          <p className="text-[9px] text-faint mt-0.5">
+                            汇率快照 {Number(n.exchangeRate) < 0.01
+                              ? `1 USD ≈ ${Math.round(1 / Number(n.exchangeRate)).toLocaleString()} ${n.userPriceCurrency}`
+                              : `1 ${n.userPriceCurrency} ≈ ${Number(n.exchangeRate)} USD`}
+                          </p>
+                        )}
                       </div>
                       <div>
                         {editingAdminPriceId === n.id && isAdmin ? (

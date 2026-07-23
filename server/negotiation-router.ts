@@ -46,6 +46,7 @@ export const negotiationRouter = createRouter({
       adminPrice: z.number().default(0),
       userPriceLocal: z.number().nullable().optional(),
       userPriceCurrency: z.string().nullable().optional(),
+      exchangeRate: z.string().nullable().optional(),
       notes: z.string().optional(),
       createdAt: z.string(),
     }))
@@ -68,6 +69,7 @@ export const negotiationRouter = createRouter({
         adminPrice: input.adminPrice,
         userPriceLocal: input.userPriceLocal ?? null,
         userPriceCurrency: input.userPriceCurrency ?? null,
+        exchangeRate: input.exchangeRate ?? null,
         notes: input.notes || null,
         isTest: isTestTarget,
         createdAt: input.createdAt,

@@ -74,6 +74,12 @@ export function parseAmountInput(raw: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+// 获取当前使用的汇率（1 单位该货币 = X USD），用于提交时存汇率快照
+export async function getExchangeRate(currency: string): Promise<number | null> {
+  const rates = await getRates();
+  return rates[currency.toUpperCase()] ?? null;
+}
+
 // Convert amount from local currency to USD
 export async function convertToUSD(amount: number, currency: string): Promise<number> {
   const rates = await getRates();
