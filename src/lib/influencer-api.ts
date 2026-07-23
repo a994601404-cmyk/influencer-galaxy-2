@@ -43,7 +43,12 @@ export function useInfluencerById(id: number | null) {
 export function useCreateInfluencer() {
   const utils = trpc.useUtils();
   return trpc.influencer.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (inf) => {
+      // 直接把新卡片写入列表缓存，不等待 refetch
+      utils.influencer.list.setData(undefined, (old: any) => {
+        if (!old?.items || !inf) return old;
+        return { ...old, items: [...old.items.filter((i: any) => i?.id !== (inf as any).id), inf] };
+      });
       utils.influencer.list.invalidate();
       utils.influencer.getNiches.invalidate();
       utils.influencer.getCreators.invalidate();
@@ -226,7 +231,32 @@ export function useNegotiationListAll(influencerIds?: number[]) {
 export function useCreateNegotiation() {
   const utils = trpc.useUtils();
   return trpc.negotiation.create.useMutation({
-    onSuccess: (_, vars) => {
+    onMutate: async (vars) => {
+      await utils.negotiation.list.cancel({ influencerId: vars.influencerId });
+      await utils.negotiation.listAll.cancel();
+      const prevList = utils.negotiation.list.getData({ influencerId: vars.influencerId });
+      const prevAll = utils.negotiation.listAll.getData();
+      const nextRound = Math.max(0, ...((prevList as any[]) || []).map((n: any) => n?.round || 0)) + 1;
+      const temp = {
+        id: `tmp-neg-${Date.now()}`,
+        influencerId: vars.influencerId,
+        round: nextRound,
+        userPrice: (vars as any).userPrice ?? 0,
+        adminPrice: (vars as any).adminPrice ?? 0,
+        notes: (vars as any).notes ?? null,
+        createdAt: (vars as any).createdAt ?? "",
+      };
+      const append = (old: any) => (Array.isArray(old) ? [...old, temp] : old);
+      utils.negotiation.list.setData({ influencerId: vars.influencerId }, append);
+      utils.negotiation.listAll.setData(undefined, append);
+      return { prevList, prevAll, infId: vars.influencerId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.infId && ctx?.prevList) utils.negotiation.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      if (ctx?.prevAll) utils.negotiation.listAll.setData(undefined, ctx.prevAll);
+      alert(err.message || "保存失败");
+    },
+    onSettled: (_d, _e, vars) => {
       utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
       utils.negotiation.listAll.invalidate();
       // 普通用户提交后卡片会自动移入「审核中」
@@ -280,7 +310,32 @@ export function useUpdateNegotiation() {
 export function useDeleteNegotiation() {
   const utils = trpc.useUtils();
   return trpc.negotiation.delete.useMutation({
-    onSuccess: () => utils.negotiation.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.negotiation.listAll.cancel();
+      const prevAll = utils.negotiation.listAll.getData();
+      const infId = (prevAll as any[])?.find((n: any) => n?.id === vars.id)?.influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.negotiation.list.cancel({ influencerId: infId });
+        prevList = utils.negotiation.list.getData({ influencerId: infId });
+        utils.negotiation.list.setData({ influencerId: infId }, (old: any) =>
+          Array.isArray(old) ? old.filter((n: any) => n?.id !== vars.id) : old
+        );
+      }
+      utils.negotiation.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old) ? old.filter((n: any) => n?.id !== vars.id) : old
+      );
+      return { prevAll, prevList, infId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevAll) utils.negotiation.listAll.setData(undefined, ctx.prevAll);
+      if (ctx?.infId && ctx?.prevList) utils.negotiation.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      alert(err.message || "删除失败");
+    },
+    onSettled: () => {
+      utils.negotiation.list.invalidate();
+      utils.negotiation.listAll.invalidate();
+    },
   });
 }
 
@@ -295,7 +350,23 @@ export function usePostList(influencerId: number | null) {
 export function useCreatePost() {
   const utils = trpc.useUtils();
   return trpc.post.create.useMutation({
-    onSuccess: (_, vars) => {
+    onMutate: async (vars) => {
+      await utils.post.list.cancel({ influencerId: vars.influencerId });
+      await utils.post.listAll.cancel();
+      const prevList = utils.post.list.getData({ influencerId: vars.influencerId });
+      const prevAll = utils.post.listAll.getData();
+      const temp = { id: `tmp-post-${Date.now()}`, status: "pending", ...(vars as any) };
+      const append = (old: any) => (Array.isArray(old) ? [...old, temp] : old);
+      utils.post.list.setData({ influencerId: vars.influencerId }, append);
+      utils.post.listAll.setData(undefined, append);
+      return { prevList, prevAll, infId: vars.influencerId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.infId && ctx?.prevList) utils.post.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      if (ctx?.prevAll) utils.post.listAll.setData(undefined, ctx.prevAll);
+      alert(err.message || "保存失败");
+    },
+    onSettled: (_d, _e, vars) => {
       utils.post.list.invalidate({ influencerId: vars.influencerId });
       utils.post.listAll.invalidate();
     },
@@ -315,7 +386,29 @@ export function useUpdatePost() {
 export function useDeletePost() {
   const utils = trpc.useUtils();
   return trpc.post.delete.useMutation({
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      await utils.post.listAll.cancel();
+      const prevAll = utils.post.listAll.getData();
+      const infId = (prevAll as any[])?.find((p: any) => p?.id === vars.id)?.influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.post.list.cancel({ influencerId: infId });
+        prevList = utils.post.list.getData({ influencerId: infId });
+        utils.post.list.setData({ influencerId: infId }, (old: any) =>
+          Array.isArray(old) ? old.filter((p: any) => p?.id !== vars.id) : old
+        );
+      }
+      utils.post.listAll.setData(undefined, (old: any) =>
+        Array.isArray(old) ? old.filter((p: any) => p?.id !== vars.id) : old
+      );
+      return { prevAll, prevList, infId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevAll) utils.post.listAll.setData(undefined, ctx.prevAll);
+      if (ctx?.infId && ctx?.prevList) utils.post.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      alert(err.message || "删除失败");
+    },
+    onSettled: () => {
       utils.post.list.invalidate();
       utils.post.listAll.invalidate();
     },
@@ -332,13 +425,22 @@ export function useReviewPost() {
     onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
       await utils.post.listAll.cancel();
       const prev = utils.post.listAll.getData();
-      utils.post.listAll.setData(undefined, (old: any) =>
-        Array.isArray(old) ? old.map((p: any) => (p?.id === vars.id ? { ...p, status: vars.status, adminNote: vars.adminNote ?? p.adminNote } : p)) : old
-      );
-      return { prev };
+      const patch = (old: any) =>
+        Array.isArray(old) ? old.map((p: any) => (p?.id === vars.id ? { ...p, status: vars.status, adminNote: vars.adminNote ?? p.adminNote } : p)) : old;
+      utils.post.listAll.setData(undefined, patch);
+      // 同步详情弹窗的 post.list 缓存
+      const infId = (prev as any[])?.find((p: any) => p?.id === vars.id)?.influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.post.list.cancel({ influencerId: infId });
+        prevList = utils.post.list.getData({ influencerId: infId });
+        utils.post.list.setData({ influencerId: infId }, patch);
+      }
+      return { prev, prevList, infId };
     },
     onError: (err, _vars, ctx) => {
       if (ctx?.prev) utils.post.listAll.setData(undefined, ctx.prev);
+      if (ctx?.infId && ctx?.prevList) utils.post.list.setData({ influencerId: ctx.infId }, ctx.prevList);
       alert(err.message || "操作失败");
     },
     onSettled: () => {
@@ -410,7 +512,34 @@ export function useScriptReviewListAll() {
 export function useCreateScriptReview() {
   const utils = trpc.useUtils();
   return trpc.scriptReview.create.useMutation({
-    onSuccess: (_, vars) => {
+    onMutate: async (vars) => {
+      await utils.scriptReview.list.cancel({ influencerId: vars.influencerId });
+      await utils.scriptReview.listAll.cancel();
+      const prevList = utils.scriptReview.list.getData({ influencerId: vars.influencerId });
+      const prevAll = utils.scriptReview.listAll.getData();
+      const nextRound = Math.max(0, ...((prevList as any[]) || []).map((s: any) => s?.round || 0)) + 1;
+      const temp = {
+        id: `tmp-script-${Date.now()}`,
+        influencerId: vars.influencerId,
+        round: nextRound,
+        scriptText: (vars as any).scriptText,
+        userNote: (vars as any).userNote ?? null,
+        status: "pending",
+        adminNote: null,
+        submittedAt: (vars as any).submittedAt ?? "",
+        reviewedAt: null,
+      };
+      const append = (old: any) => (Array.isArray(old) ? [...old, temp] : old);
+      utils.scriptReview.list.setData({ influencerId: vars.influencerId }, append);
+      utils.scriptReview.listAll.setData(undefined, append);
+      return { prevList, prevAll, infId: vars.influencerId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.infId && ctx?.prevList) utils.scriptReview.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      if (ctx?.prevAll) utils.scriptReview.listAll.setData(undefined, ctx.prevAll);
+      alert(err.message || "提交失败");
+    },
+    onSettled: (_d, _e, vars) => {
       utils.scriptReview.list.invalidate({ influencerId: vars.influencerId });
       utils.scriptReview.listAll.invalidate();
       utils.cardCategory.list.invalidate();
@@ -424,13 +553,22 @@ export function useReviewScript() {
     onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
       await utils.scriptReview.listAll.cancel();
       const prev = utils.scriptReview.listAll.getData();
-      utils.scriptReview.listAll.setData(undefined, (old: any) =>
-        Array.isArray(old) ? old.map((s: any) => (s?.id === vars.id ? { ...s, status: vars.status, adminNote: vars.adminNote ?? s.adminNote } : s)) : old
-      );
-      return { prev };
+      const patch = (old: any) =>
+        Array.isArray(old) ? old.map((s: any) => (s?.id === vars.id ? { ...s, status: vars.status, adminNote: vars.adminNote ?? s.adminNote } : s)) : old;
+      utils.scriptReview.listAll.setData(undefined, patch);
+      // 同步详情弹窗的 scriptReview.list 缓存
+      const infId = (prev as any[])?.find((s: any) => s?.id === vars.id)?.influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.scriptReview.list.cancel({ influencerId: infId });
+        prevList = utils.scriptReview.list.getData({ influencerId: infId });
+        utils.scriptReview.list.setData({ influencerId: infId }, patch);
+      }
+      return { prev, prevList, infId };
     },
     onError: (err, _vars, ctx) => {
       if (ctx?.prev) utils.scriptReview.listAll.setData(undefined, ctx.prev);
+      if (ctx?.infId && ctx?.prevList) utils.scriptReview.list.setData({ influencerId: ctx.infId }, ctx.prevList);
       alert(err.message || "操作失败");
     },
     onSettled: () => {
@@ -458,7 +596,35 @@ export function useVideoReviewListAll() {
 export function useCreateVideoReview() {
   const utils = trpc.useUtils();
   return trpc.videoReview.create.useMutation({
-    onSuccess: (_, vars) => {
+    onMutate: async (vars) => {
+      await utils.videoReview.list.cancel({ influencerId: vars.influencerId });
+      await utils.videoReview.listAll.cancel();
+      const prevList = utils.videoReview.list.getData({ influencerId: vars.influencerId });
+      const prevAll = utils.videoReview.listAll.getData();
+      const nextRound = Math.max(0, ...((prevList as any[]) || []).map((v: any) => v?.round || 0)) + 1;
+      const temp = {
+        id: `tmp-video-${Date.now()}`,
+        influencerId: vars.influencerId,
+        round: nextRound,
+        videoUrl: (vars as any).videoUrl,
+        videoFileName: (vars as any).videoFileName ?? null,
+        userNote: (vars as any).userNote ?? null,
+        status: "pending",
+        adminNote: null,
+        submittedAt: (vars as any).submittedAt ?? "",
+        reviewedAt: null,
+      };
+      const append = (old: any) => (Array.isArray(old) ? [...old, temp] : old);
+      utils.videoReview.list.setData({ influencerId: vars.influencerId }, append);
+      utils.videoReview.listAll.setData(undefined, append);
+      return { prevList, prevAll, infId: vars.influencerId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.infId && ctx?.prevList) utils.videoReview.list.setData({ influencerId: ctx.infId }, ctx.prevList);
+      if (ctx?.prevAll) utils.videoReview.listAll.setData(undefined, ctx.prevAll);
+      alert(err.message || "提交失败");
+    },
+    onSettled: (_d, _e, vars) => {
       utils.videoReview.list.invalidate({ influencerId: vars.influencerId });
       utils.videoReview.listAll.invalidate();
       utils.cardCategory.list.invalidate();
@@ -472,13 +638,22 @@ export function useReviewVideo() {
     onMutate: async (vars: { id: number; status: string; adminNote?: string }) => {
       await utils.videoReview.listAll.cancel();
       const prev = utils.videoReview.listAll.getData();
-      utils.videoReview.listAll.setData(undefined, (old: any) =>
-        Array.isArray(old) ? old.map((v: any) => (v?.id === vars.id ? { ...v, status: vars.status, adminNote: vars.adminNote ?? v.adminNote } : v)) : old
-      );
-      return { prev };
+      const patch = (old: any) =>
+        Array.isArray(old) ? old.map((v: any) => (v?.id === vars.id ? { ...v, status: vars.status, adminNote: vars.adminNote ?? v.adminNote } : v)) : old;
+      utils.videoReview.listAll.setData(undefined, patch);
+      // 同步详情弹窗的 videoReview.list 缓存
+      const infId = (prev as any[])?.find((v: any) => v?.id === vars.id)?.influencerId as number | undefined;
+      let prevList: any;
+      if (infId) {
+        await utils.videoReview.list.cancel({ influencerId: infId });
+        prevList = utils.videoReview.list.getData({ influencerId: infId });
+        utils.videoReview.list.setData({ influencerId: infId }, patch);
+      }
+      return { prev, prevList, infId };
     },
     onError: (err, _vars, ctx) => {
       if (ctx?.prev) utils.videoReview.listAll.setData(undefined, ctx.prev);
+      if (ctx?.infId && ctx?.prevList) utils.videoReview.list.setData({ influencerId: ctx.infId }, ctx.prevList);
       alert(err.message || "操作失败");
     },
     onSettled: () => {
@@ -708,7 +883,24 @@ export function useSaveCardOrderInCategory() {
 export function useAssignCardToCategory() {
   const utils = trpc.useUtils();
   return trpc.cardCategory.assignCard.useMutation({
-    onSuccess: () => utils.cardCategory.list.invalidate(),
+    onMutate: async (vars) => {
+      await utils.cardCategory.list.cancel();
+      const prev = utils.cardCategory.list.getData();
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const maxOrder = Math.max(-1, ...old.items.filter((i) => i.categoryId === vars.categoryId).map((i) => i.sortOrder ?? 0));
+        let items = old.items.filter((i) => i.influencerId !== vars.influencerId);
+        items = [...items, { id: `tmp-assign-${vars.influencerId}`, categoryId: vars.categoryId, influencerId: vars.influencerId, sortOrder: maxOrder + 1, isPinned: 0 }];
+        items = reorderCategoryItems(items, vars.categoryId);
+        return { ...old, items };
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) utils.cardCategory.list.setData(undefined, ctx.prev);
+      alert(err.message || "分配失败");
+    },
+    onSettled: () => utils.cardCategory.list.invalidate(),
   });
 }
 

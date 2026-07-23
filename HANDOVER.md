@@ -128,6 +128,12 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
   videoReview/post 的 listAll，配合 60s staleTime 切换页面零等待（07-23 新增；
   注意 useInfluencerList 已归一化输入——无筛选时传 undefined 保证共享预取缓存 key）
 - 报价/脚本/视频/发布审核 mutation、分类展开、审核报价全部 onMutate 乐观更新 + 失败回滚
+- **提交类 mutation 全部乐观直写缓存**（07-23 下午）：useCreateNegotiation/DeleteNegotiation、
+  useCreateScriptReview/CreateVideoReview（临时记录 tmp-* id，refetch 后替换）、useCreatePost/DeletePost、
+  useReviewScript/ReviewVideo/ReviewPost（同时 patch listAll 和详情 list 两级缓存）、
+  useAssignCardToCategory（新建网红即时进入「审核中」分类，无需刷新）、useCreateInfluencer
+  （onSuccess 直接 setData 写入列表缓存）。根因：此前依赖 invalidate→refetch 链条，热响应 0.4s+
+  冷启动 2.4s 导致用户感知 1-3 秒延迟
 - **准实时数据同步**：NotificationBell 收到任何 SSE 新通知时，失效 influencer/cardCategory/negotiation/
   scriptReview/videoReview/post 的 list + listAll 两级查询（07-23 补齐 list 级——审核中心用 listAll、
   详情弹窗用 list，漏掉 list 会导致管理员在详情里看不到用户刚提交的内容）；
