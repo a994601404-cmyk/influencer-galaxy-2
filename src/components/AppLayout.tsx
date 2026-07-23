@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/lib/theme";
+import { trpc } from "@/providers/trpc";
 import { ErrorBoundary } from "./ErrorBoundary";
 import AuthModal from "./AuthModal";
 import NotificationBell from "./NotificationBell";
@@ -43,6 +44,20 @@ export default function AppLayout() {
       navigate("/landing", { replace: true });
     }
   }, [isLoading, isAuthenticated, navigate]);
+
+  // 登录后后台预取各页面核心数据，配合 staleTime 60s，
+  // 切换页面时直接使用缓存，避免每次都等 serverless 冷启动
+  const utils = trpc.useUtils();
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    utils.influencer.list.prefetch();
+    utils.cardCategory.list.prefetch();
+    utils.cardCategory.statusCounts.prefetch();
+    utils.negotiation.listAll.prefetch();
+    utils.scriptReview.listAll.prefetch();
+    utils.videoReview.listAll.prefetch();
+    utils.post.listAll.prefetch();
+  }, [isAuthenticated, utils]);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
 

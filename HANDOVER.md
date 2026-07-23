@@ -109,29 +109,37 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **审核报价详情同步**（2026-07-22 修复）：旧 useUpdateNegotiation 用 zod 会剥离的 influencerId 做精准
   invalidate 导致 negotiation.list 永不刷新，已改为无参广域 invalidate + 乐观更新
 
-## 「审核中」锁定分类（2026-07-22 新增）
+## 「审核中」锁定分类（2026-07-22 新增，07-23 完善流转）
 - 默认置顶分类，cardCategory.list 服务端兜底：0 分类用户建 4 个默认分类（审核中/对接中/已发布/网红库）；
   已有分类但缺「审核中」的老用户自动 insert 到 minOrder-1 置顶位
 - **锁定语义**：moveCard 任一端为「审核中」即拒绝；create/update/delete 禁止创建/改名/删除该分类
-- **自动流转**：新网红添加后前端 assignCard 进「审核中」；管理员 updateAdminPrice（price>0）或
-  setNotCooperating 时，服务端 moveOutOfReview 把该网红在所有人「审核中」里的卡片移到各自「对接中」（没有则创建）
+- **完整流转（07-23）**：新网红添加 → 进「审核中」；普通用户提交谈价记录/脚本审核/视频初稿 →
+  moveIntoReview 移入「审核中」（所有用户的分类视图同步移动，创建者无行则建行）；
+  管理员填审核报价（negotiation.update/create）或审核脚本/视频（review，含不通过）或设为不合作 →
+  moveOutOfReview 移回「对接中」。发布记录不参与流转
 - 前端：琥珀色边框区分 + Lock 图标 + 提示文案；审核中分类内卡片禁用拖拽把手和移动菜单；
   移动目标列表（卡片菜单/批量移动）均过滤掉「审核中」；handleDragEnd 拦截拖入
 - **创建者展示**：管理员视角卡片右下角 `by 用户名` 高亮（InfluencerCard creatorName prop）；
   创建者筛选改为前端过滤（allInfluencers memo），下拉选项基于未筛选列表构建
 
-## 性能与准实时同步（2026-07-22）
-- trpc.tsx QueryClient 全局 `staleTime: 15000` + `refetchOnWindowFocus: false`（通知 30s 轮询不受影响）
+## 性能与准实时同步（2026-07-22，07-23 加强）
+- trpc.tsx QueryClient 全局 `staleTime: 60000`（07-23 由 15s 提高）+ `refetchOnWindowFocus: false`
+- **AppLayout 登录后后台预取** influencer.list/cardCategory/statusCounts/negotiation/scriptReview/
+  videoReview/post 的 listAll，配合 60s staleTime 切换页面零等待（07-23 新增；
+  注意 useInfluencerList 已归一化输入——无筛选时传 undefined 保证共享预取缓存 key）
 - 报价/脚本/视频/发布审核 mutation、分类展开、审核报价全部 onMutate 乐观更新 + 失败回滚
 - **准实时数据同步**：NotificationBell 收到任何 SSE 新通知时，失效 influencer/cardCategory/negotiation/
-  scriptReview/videoReview/post 等数据查询——所有数据变更本就会产生通知，受影响用户页面秒级自动刷新；
-  轮询降级模式下未读数增加时同样触发。未引入 WebSocket/第三方推送服务（Vercel serverless 不适合长连接）
+  scriptReview/videoReview/post 的 list + listAll 两级查询（07-23 补齐 list 级——审核中心用 listAll、
+  详情弹窗用 list，漏掉 list 会导致管理员在详情里看不到用户刚提交的内容）；
+  轮询降级模式下未读数增加时同样触发。未引入 WebSocket/第三方推送服务
 - **数据页（Analytics）**：管理员可按创建者筛选；发布数据行新增「合作价格」列（= 该网红最后一次审核报价，
   即 influencers.adminPrice）；「导出 Excel」按当前筛选结果生成 SpreadsheetML .xls（零依赖，Excel/WPS 直接打开）
 - **工作台（Dashboard）**：发布数据概览与数据页同口径隔离（普通用户只统计自己可见网红的发布数据）；
   顶部新增「网红卡片分布」四分类计数（cardCategory.statusCounts：普通用户统计自己分类，管理员全站去重统计）
 - **落地页双主题**：GalaxyScene 通过 MutationObserver 监听 html.dark，亮色主题用暖白底 + 深绿粒子/线条，
   暗色保持原黑底酸绿
+- **谈价记录货币选项（07-23）**：新增谈价记录的网红报价支持 17 种货币（与添加网红一致），
+  前端按实时汇率折算 USD 存储（open.er-api.com，1h 缓存 + 硬编码兜底），无需 DDL
 
 
 ## 双主题（2026-07-21 上线）

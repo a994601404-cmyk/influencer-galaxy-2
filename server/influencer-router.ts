@@ -91,6 +91,69 @@ export async function moveOutOfReview(influencerId: number) {
   } catch { /* best effort — don't fail the price update */ }
 }
 
+// Move an influencer's cards INTO the locked "审核中" category when a user
+// submits a review item (谈价/脚本/视频初稿). Mirrors moveOutOfReview:
+// every user's personal category view moves together.
+export async function moveIntoReview(influencerId: number) {
+  try {
+    const conn = await getRawConnection();
+    // All categorized rows for this influencer not already in 「审核中」
+    const [rows] = await conn.execute(
+      `SELECT c.id as itemId, cat.userUnionId as ownerId FROM cardCategoryItems c
+       JOIN cardCategories cat ON c.categoryId = cat.id
+       WHERE c.influencerId = ? AND cat.name != '审核中'`,
+      [influencerId]
+    );
+    const owners = new Set<string>((rows as any[]).map((r) => r.ownerId));
+    // Also ensure the creator has a row (uncategorized cards fall back to 网红库 visually)
+    const [infRows] = await conn.execute(`SELECT createdByUnionId FROM influencers WHERE id = ? LIMIT 1`, [influencerId]);
+    const creatorId = (infRows as any[])[0]?.createdByUnionId;
+    if (creatorId && !owners.has(creatorId)) owners.add(creatorId);
+
+    for (const ownerId of owners) {
+      // Find or create the owner's 「审核中」category (top position)
+      const [targetRows] = await conn.execute(
+        `SELECT id FROM cardCategories WHERE userUnionId = ? AND name = '审核中' LIMIT 1`,
+        [ownerId]
+      );
+      let targetId = (targetRows as any[])[0]?.id;
+      if (!targetId) {
+        const [minCat] = await conn.execute(
+          `SELECT MIN(sortOrder) as m FROM cardCategories WHERE userUnionId = ?`,
+          [ownerId]
+        );
+        const [ins] = await conn.execute(
+          `INSERT INTO cardCategories (userUnionId, name, sortOrder, isExpanded) VALUES (?, '审核中', ?, 1)`,
+          [ownerId, (((minCat as any[])[0]?.m ?? 1) - 1)]
+        );
+        targetId = (ins as any).insertId;
+      }
+      // Move existing row, or insert a new one for the creator
+      const [existing] = await conn.execute(
+        `SELECT c.id FROM cardCategoryItems c JOIN cardCategories cat ON c.categoryId = cat.id
+         WHERE c.influencerId = ? AND cat.userUnionId = ? LIMIT 1`,
+        [influencerId, ownerId]
+      );
+      const [maxItem] = await conn.execute(
+        `SELECT MAX(sortOrder) as m FROM cardCategoryItems WHERE categoryId = ?`,
+        [targetId]
+      );
+      const nextOrder = (((maxItem as any[])[0]?.m ?? -1) + 1);
+      if ((existing as any[])[0]?.id) {
+        await conn.execute(
+          `UPDATE cardCategoryItems SET categoryId = ?, sortOrder = ? WHERE id = ?`,
+          [targetId, nextOrder, (existing as any[])[0].id]
+        );
+      } else {
+        await conn.execute(
+          `INSERT INTO cardCategoryItems (categoryId, influencerId, sortOrder, isPinned) VALUES (?, ?, ?, 0)`,
+          [targetId, influencerId, nextOrder]
+        );
+      }
+    }
+  } catch { /* best effort — don't fail the submit */ }
+}
+
 // ─── List ─────────────────────────────────────────────────────
 const listInput = z.object({
   platform: z.string().optional(),

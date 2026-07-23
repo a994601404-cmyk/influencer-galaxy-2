@@ -11,8 +11,9 @@ export const trpc = createTRPCReact<AppRouter>();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // 15s 内重复挂载不重新请求，减少页面切换/弹窗打开时的等待
-      staleTime: 15000,
+      // 60s 内重复挂载/切换页面直接使用缓存；
+      // 跨用户变更由 SSE 通知驱动 invalidate，自己的操作由 mutation invalidate
+      staleTime: 60000,
       refetchOnWindowFocus: false,
     },
   },

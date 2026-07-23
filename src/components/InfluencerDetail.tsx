@@ -14,6 +14,7 @@ function nowBeijing(): string {
   return `${bj.getFullYear()}-${pad(bj.getMonth() + 1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
 }
 import { displayCountry } from "@/lib/countries";
+import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, prefetchRates } from "@/lib/currency";
 import { compressVideo, type CompressProgress } from "@/lib/video-compress";
 import { storeVideoFile, getVideoFile, genVideoKey } from "@/lib/video-storage";
 import {
@@ -103,6 +104,16 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   const [negUserPrice, setNegUserPrice] = useState("");
   const [negAdminPrice, setNegAdminPrice] = useState("");
   const [negNotes, setNegNotes] = useState("");
+  const [negCurrency, setNegCurrency] = useState("USD");
+
+  // 谈价表单打开时预取汇率
+  useEffect(() => {
+    if (showNegForm) prefetchRates();
+  }, [showNegForm]);
+
+  // 非美元时显示 USD 折算预览
+  const negAmount = parseInt(negUserPrice) || 0;
+  const negUsdPreview = negAmount > 0 && negCurrency !== "USD" ? convertToUSDSync(negAmount, negCurrency) : null;
 
   // ─── Data: Scripts ──────────────────────────────────────────
   const { data: scripts = [] } = useScriptReviewList(infId);
@@ -327,11 +338,14 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
     });
   };
 
-  const handleAddNegotiation = () => {
+  const handleAddNegotiation = async () => {
     if (!negUserPrice && !negAdminPrice) return;
+    const rawUserPrice = parseInt(negUserPrice) || 0;
+    // 与添加网红一致：按所选货币折算为 USD 存储
+    const userPriceUsd = rawUserPrice > 0 ? await convertToUSD(rawUserPrice, negCurrency).catch(() => convertToUSDSync(rawUserPrice, negCurrency)) : 0;
     createNeg.mutate({
       influencerId: inf.id,
-      userPrice: parseInt(negUserPrice) || 0,
+      userPrice: userPriceUsd,
       adminPrice: parseInt(negAdminPrice) || 0,
       notes: negNotes,
       createdAt: nowBeijing(),
@@ -567,9 +581,18 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                 <h4 className="text-xs font-bold text-content">新增谈价记录</h4>
                 <div className={`grid gap-3 ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
                   <div>
-                    <label className="text-[10px] text-faint mb-1 block">网红报价 ($)</label>
-                    <input type="number" value={negUserPrice} onChange={(e) => setNegUserPrice(e.target.value)} placeholder="网红提出的价格"
-                      className="w-full bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
+                    <label className="text-[10px] text-faint mb-1 block">网红报价</label>
+                    <div className="flex items-center gap-1.5">
+                      <select value={negCurrency} onChange={(e) => setNegCurrency(e.target.value)}
+                        className="w-24 flex-shrink-0 bg-base border border-line rounded-lg px-1.5 py-2 text-xs text-content focus:outline-none focus:border-brand/30">
+                        {CURRENCY_OPTIONS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+                      </select>
+                      <input type="number" value={negUserPrice} onChange={(e) => setNegUserPrice(e.target.value)} placeholder={`输入${negCurrency}金额`}
+                        className="flex-1 min-w-0 bg-base border border-line rounded-lg px-3 py-2 text-xs text-content placeholder:text-faint focus:outline-none focus:border-brand/30" />
+                    </div>
+                    {negUsdPreview !== null && negUsdPreview > 0 && (
+                      <p className="text-[10px] text-brand mt-1">≈ ${negUsdPreview.toLocaleString()} USD</p>
+                    )}
                   </div>
                   {isAdmin && (
                     <div>

@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection.js";
 import { scriptReviews } from "../db/schema.js";
 import { eq, and, asc } from "drizzle-orm";
 import { createNotification, getAdminUnionIds, getInfluencerCreator, getInfluencerName } from "./notification-router.js";
+import { moveIntoReview, moveOutOfReview } from "./influencer-router.js";
 
 export const scriptReviewRouter = createRouter({
   list: publicQuery
@@ -81,6 +82,11 @@ export const scriptReviewRouter = createRouter({
         }
       } catch { /* ignore */ }
 
+      // 普通用户提交脚本审核 → 卡片移入「审核中」
+      if (ctx.user.role !== "admin") {
+        await moveIntoReview(input.influencerId);
+      }
+
       const row = await db.select().from(scriptReviews).where(eq(scriptReviews.id, insertId)).limit(1);
       return row[0];
     }),
@@ -100,6 +106,9 @@ export const scriptReviewRouter = createRouter({
         reviewedAt: now,
       }).where(eq(scriptReviews.id, input.id));
       const row = await db.select().from(scriptReviews).where(eq(scriptReviews.id, input.id)).limit(1);
+
+      // 管理员审核完毕（通过/不通过）→ 卡片移回「对接中」
+      await moveOutOfReview(row[0].influencerId);
 
       // Notify influencer creator
       try {

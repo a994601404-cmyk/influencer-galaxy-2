@@ -4,7 +4,7 @@ import { getDb, getRawConnection } from "./queries/connection.js";
 import { negotiationRecords, influencers } from "../db/schema.js";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { createNotification, getAdminUnionIds, getInfluencerCreator, getInfluencerName, getBeijingTimeFull } from "./notification-router.js";
-import { moveOutOfReview } from "./influencer-router.js";
+import { moveIntoReview, moveOutOfReview } from "./influencer-router.js";
 
 export const negotiationRouter = createRouter({
   // List all negotiation records, optionally filtered by influencerIds
@@ -118,6 +118,10 @@ export const negotiationRouter = createRouter({
       // 管理员直接创建带审核报价的谈价记录时，同样自动移出「审核中」
       if (ctx.user.role === "admin" && input.adminPrice > 0) {
         await moveOutOfReview(input.influencerId);
+      }
+      // 普通用户提交谈价记录 → 卡片移入「审核中」等待管理员审核
+      if (ctx.user.role !== "admin") {
+        await moveIntoReview(input.influencerId);
       }
 
       const row = await db.select().from(negotiationRecords).where(eq(negotiationRecords.id, insertId)).limit(1);

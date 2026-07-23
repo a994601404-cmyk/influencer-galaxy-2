@@ -27,7 +27,10 @@ export function useInfluencerList(input?: {
   search?: string;
   creator?: string;
 }) {
-  return trpc.influencer.list.useQuery(input || {});
+  // 归一化输入：全部为空时传 undefined，保证与 AppLayout 预取及其他页面
+  // 共享同一缓存 key（{platform: undefined} 与 undefined 是不同的 key）
+  const cleaned = input && Object.values(input).some((v) => v !== undefined && v !== "") ? input : undefined;
+  return trpc.influencer.list.useQuery(cleaned as any);
 }
 
 export function useInfluencerById(id: number | null) {
@@ -226,6 +229,8 @@ export function useCreateNegotiation() {
     onSuccess: (_, vars) => {
       utils.negotiation.list.invalidate({ influencerId: vars.influencerId });
       utils.negotiation.listAll.invalidate();
+      // 普通用户提交后卡片会自动移入「审核中」
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -408,6 +413,7 @@ export function useCreateScriptReview() {
     onSuccess: (_, vars) => {
       utils.scriptReview.list.invalidate({ influencerId: vars.influencerId });
       utils.scriptReview.listAll.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -430,6 +436,8 @@ export function useReviewScript() {
     onSettled: () => {
       utils.scriptReview.list.invalidate();
       utils.scriptReview.listAll.invalidate();
+      // 管理员审核完毕卡片会自动移回「对接中」
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -453,6 +461,7 @@ export function useCreateVideoReview() {
     onSuccess: (_, vars) => {
       utils.videoReview.list.invalidate({ influencerId: vars.influencerId });
       utils.videoReview.listAll.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }
@@ -475,6 +484,7 @@ export function useReviewVideo() {
     onSettled: () => {
       utils.videoReview.list.invalidate();
       utils.videoReview.listAll.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }

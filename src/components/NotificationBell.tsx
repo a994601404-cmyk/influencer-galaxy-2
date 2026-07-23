@@ -79,8 +79,13 @@ export default function NotificationBell() {
     utils.cardCategory.statusCounts.invalidate();
     utils.negotiation.list.invalidate();
     utils.negotiation.listAll.invalidate();
+    // listAll 供审核中心；list（按网红）供详情弹窗——两级都要失效，
+    // 否则管理员打开详情看到的还是提交前的旧缓存
+    utils.scriptReview.list.invalidate();
     utils.scriptReview.listAll.invalidate();
+    utils.videoReview.list.invalidate();
     utils.videoReview.listAll.invalidate();
+    utils.post.list.invalidate();
     utils.post.listAll.invalidate();
   }, [utils]);
 
