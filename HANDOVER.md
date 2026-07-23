@@ -116,10 +116,16 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - 默认置顶分类，cardCategory.list 服务端兜底：0 分类用户建 4 个默认分类（审核中/对接中/已发布/网红库）；
   已有分类但缺「审核中」的老用户自动 insert 到 minOrder-1 置顶位
 - **锁定语义**：moveCard 任一端为「审核中」即拒绝；create/update/delete 禁止创建/改名/删除该分类
-- **完整流转（07-23）**：新网红添加 → 进「审核中」；普通用户提交谈价记录/脚本审核/视频初稿 →
+- **完整流转（07-23）**：新网红添加 → 进「审核中」（influencer.create 服务端同事务调 moveIntoReview，
+  前端不再单独调 assignCard）；普通用户提交谈价记录/脚本审核/视频初稿 →
   moveIntoReview 移入「审核中」（所有用户的分类视图同步移动，创建者无行则建行）；
   管理员填审核报价（negotiation.update/create）或审核脚本/视频（review，含不通过）或设为不合作 →
   moveOutOfReview 移回「对接中」。发布记录不参与流转
+- **多货币报价（07-23）**： influencers/negotiationRecords 新增 userPriceLocal/userPriceCurrency
+  （需 ALTER TABLE，见「数据库表」）；非美元报价折算 USD 存储，卡片展示 `$921(1,400,000 KRW)` 格式
+  （formatQuoteUSD @ src/lib/currency.ts）。修复两个根因 bug：parseInt 被千分位逗号截断
+  （"1,400,000"→1→折算 0，导致报价丢失、管理员报价审核看不到卡片）+ 备用汇率表未取反
+  （API 失败时折算结果放大 rate² 倍）。金额输入统一走 parseAmountInput
 - 前端：琥珀色边框区分 + Lock 图标 + 提示文案；审核中分类内卡片禁用拖拽把手和移动菜单；
   移动目标列表（卡片菜单/批量移动）均过滤掉「审核中」；handleDragEnd 拦截拖入
 - **创建者展示**：管理员视角卡片右下角 `by 用户名` 高亮（InfluencerCard creatorName prop）；

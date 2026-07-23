@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
+import { formatQuoteUSD } from "@/lib/currency";
 import { parseProfileLinks } from "@/lib/profile-links";
 import { getActiveSignals, subscribeToSignals } from "@/lib/signal-light";
 import { useState, useEffect } from "react";
@@ -261,7 +262,7 @@ export default function InfluencerCard({
         <div className="flex-1">
           <p className="text-[9px] text-faint">网红报价</p>
           <p className="text-sm font-bold text-brand">
-            {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : "—"}
+            {inf.userPrice > 0 ? formatQuoteUSD(inf.userPrice, inf.userPriceLocal, inf.userPriceCurrency) : "—"}
           </p>
         </div>
         <div className="flex-1">

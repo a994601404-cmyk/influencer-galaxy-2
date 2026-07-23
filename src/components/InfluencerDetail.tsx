@@ -14,7 +14,7 @@ function nowBeijing(): string {
   return `${bj.getFullYear()}-${pad(bj.getMonth() + 1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
 }
 import { displayCountry } from "@/lib/countries";
-import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, prefetchRates } from "@/lib/currency";
+import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, formatQuoteUSD, prefetchRates } from "@/lib/currency";
 import { compressVideo, type CompressProgress } from "@/lib/video-compress";
 import { storeVideoFile, getVideoFile, genVideoKey } from "@/lib/video-storage";
 import {
@@ -112,7 +112,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
   }, [showNegForm]);
 
   // 非美元时显示 USD 折算预览
-  const negAmount = parseInt(negUserPrice) || 0;
+  const negAmount = parseAmountInput(negUserPrice);
   const negUsdPreview = negAmount > 0 && negCurrency !== "USD" ? convertToUSDSync(negAmount, negCurrency) : null;
 
   // ─── Data: Scripts ──────────────────────────────────────────
@@ -340,13 +340,16 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
 
   const handleAddNegotiation = async () => {
     if (!negUserPrice && !negAdminPrice) return;
-    const rawUserPrice = parseInt(negUserPrice) || 0;
+    const rawUserPrice = parseAmountInput(negUserPrice);
     // 与添加网红一致：按所选货币折算为 USD 存储
     const userPriceUsd = rawUserPrice > 0 ? await convertToUSD(rawUserPrice, negCurrency).catch(() => convertToUSDSync(rawUserPrice, negCurrency)) : 0;
+    const isForeign = negCurrency !== "USD" && rawUserPrice > 0;
     createNeg.mutate({
       influencerId: inf.id,
       userPrice: userPriceUsd,
-      adminPrice: parseInt(negAdminPrice) || 0,
+      adminPrice: parseAmountInput(negAdminPrice),
+      userPriceLocal: isForeign ? rawUserPrice : null,
+      userPriceCurrency: isForeign ? negCurrency : null,
       notes: negNotes,
       createdAt: nowBeijing(),
     }, {
@@ -638,7 +641,7 @@ export default function InfluencerDetail({ influencer, open, onClose, onUpdate }
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-[10px] text-sub mb-0.5">网红报价 {n.createdAt && <span className="text-[9px] text-faint">· {n.createdAt}</span>}</p>
-                        <p className="text-sm font-bold text-brand">{n.userPrice > 0 ? `$${n.userPrice.toLocaleString()}` : "—"}</p>
+                        <p className="text-sm font-bold text-brand">{n.userPrice > 0 ? formatQuoteUSD(n.userPrice, n.userPriceLocal, n.userPriceCurrency) : "—"}</p>
                       </div>
                       <div>
                         {editingAdminPriceId === n.id && isAdmin ? (

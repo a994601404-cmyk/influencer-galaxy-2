@@ -3,11 +3,12 @@
 const API_URL = "https://open.er-api.com/v6/latest/USD";
 
 // Fallback rates (used when API fails)
+// 与 API 路径同一约定：1 单位本地货币 = X USD（已取反）
 const FALLBACK_RATES: Record<string, number> = {
   USD: 1,
-  CNY: 7.20, HKD: 7.80, TWD: 32.5, JPY: 162, KRW: 1520,
-  EUR: 0.92, GBP: 0.75, SGD: 1.29, AUD: 1.44, CAD: 1.42,
-  THB: 33.3, VND: 26200, PHP: 61.5, MYR: 4.07, IDR: 17960,
+  CNY: 1 / 7.20, HKD: 1 / 7.80, TWD: 1 / 32.5, JPY: 1 / 162, KRW: 1 / 1520,
+  EUR: 1 / 0.92, GBP: 1 / 0.75, SGD: 1 / 1.29, AUD: 1 / 1.44, CAD: 1 / 1.42,
+  THB: 1 / 33.3, VND: 1 / 26200, PHP: 1 / 61.5, MYR: 1 / 4.07, IDR: 1 / 17960,
 };
 
 // In-memory cache
@@ -64,12 +65,22 @@ async function getRates(): Promise<Record<string, number>> {
   return fetchRates();
 }
 
+// 解析用户输入的金额：去掉千分位逗号、空格等，只保留数字和小数点
+// 修复：parseInt("1,400,000") = 1 导致韩币等大面额货币折算后变成 0
+export function parseAmountInput(raw: string): number {
+  if (!raw) return 0;
+  const cleaned = String(raw).replace(/[,\s，、]/g, "").replace(/[^\d.]/g, "");
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 // Convert amount from local currency to USD
 export async function convertToUSD(amount: number, currency: string): Promise<number> {
   const rates = await getRates();
   const rate = rates[currency.toUpperCase()];
   if (!rate) return amount; // fallback: no conversion
-  return Math.round(amount * rate);
+  // 金额 > 0 时折算结果至少为 1，避免小面额被 Math.round 抹成 0
+  return amount > 0 ? Math.max(1, Math.round(amount * rate)) : 0;
 }
 
 // Synchronous version using fallback rates (for initial render)
@@ -77,7 +88,16 @@ export function convertToUSDSync(amount: number, currency: string): number {
   const rates = cachedRates || FALLBACK_RATES;
   const rate = rates[currency.toUpperCase()];
   if (!rate) return amount;
-  return Math.round(amount * rate);
+  return amount > 0 ? Math.max(1, Math.round(amount * rate)) : 0;
+}
+
+// 卡片展示：USD 为主，非美元时括号附原货币，如 $921(1,400,000 KRW)
+export function formatQuoteUSD(usd: number, local?: number | null, currency?: string | null): string {
+  const base = `$${(usd || 0).toLocaleString()}`;
+  if (local && currency && currency.toUpperCase() !== "USD") {
+    return `${base}(${local.toLocaleString()} ${currency.toUpperCase()})`;
+  }
+  return base;
 }
 
 export function getCurrencySymbol(currency: string): string {

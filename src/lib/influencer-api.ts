@@ -43,15 +43,77 @@ export function useInfluencerById(id: number | null) {
 export function useCreateInfluencer() {
   const utils = trpc.useUtils();
   return trpc.influencer.create.useMutation({
-    onSuccess: (inf) => {
-      // 直接把新卡片写入列表缓存，不等待 refetch
-      utils.influencer.list.setData(undefined, (old: any) => {
-        if (!old?.items || !inf) return old;
-        return { ...old, items: [...old.items.filter((i: any) => i?.id !== (inf as any).id), inf] };
+    // 全乐观：点击提交瞬间卡片即出现在「审核中」分类，不等服务器往返
+    onMutate: async (vars: any) => {
+      await utils.influencer.list.cancel();
+      await utils.cardCategory.list.cancel();
+      const prevList = utils.influencer.list.getData(undefined);
+      const prevCat = utils.cardCategory.list.getData();
+      const me = utils.auth.me.getData() as any;
+      const tempId = `tmp-new-${Date.now()}`;
+      const tempInf = {
+        id: tempId,
+        name: vars.name,
+        handle: vars.handle,
+        platform: vars.platform,
+        avatar: vars.avatar ?? null,
+        bio: vars.bio ?? null,
+        niche: vars.niche ?? null,
+        location: vars.location ?? null,
+        gender: vars.gender ?? null,
+        profileUrl: vars.profileUrl ?? null,
+        userPrice: vars.userPrice ?? 0,
+        adminPrice: 0,
+        userPriceLocal: vars.userPriceLocal ?? null,
+        userPriceCurrency: vars.userPriceCurrency ?? null,
+        coopTypes: vars.coopTypes ?? null,
+        coopStatus: "pending",
+        hidden: 0,
+        createdByUnionId: me?.unionId ?? "",
+      };
+      utils.influencer.list.setData(undefined, (old: any) =>
+        old?.items ? { ...old, items: [...old.items, tempInf] } : old
+      );
+      utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+        if (!old) return old;
+        const reviewCat = old.categories.find((c) => c.name === "审核中");
+        if (!reviewCat) return old;
+        const maxOrder = Math.max(-1, ...old.items.filter((i) => i.categoryId === reviewCat.id).map((i) => i.sortOrder ?? 0));
+        let items = [...old.items, { id: `tmp-item-${tempId}`, categoryId: reviewCat.id, influencerId: tempId as any, sortOrder: maxOrder + 1, isPinned: 0, influencer: tempInf }];
+        items = reorderCategoryItems(items, reviewCat.id);
+        return { ...old, items };
       });
+      return { prevList, prevCat, tempId };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevList) utils.influencer.list.setData(undefined, ctx.prevList);
+      if (ctx?.prevCat) utils.cardCategory.list.setData(undefined, ctx.prevCat);
+      alert(err.message || "添加失败");
+    },
+    onSuccess: (inf: any, _vars, ctx) => {
+      // 用服务端返回的真实数据替换临时卡片
+      utils.influencer.list.setData(undefined, (old: any) => {
+        if (!old?.items) return old;
+        const items = old.items.filter((i: any) => i?.id !== ctx?.tempId && i?.id !== inf?.id);
+        return { ...old, items: inf ? [...items, inf] : items };
+      });
+      if (inf?.id != null) {
+        utils.cardCategory.list.setData(undefined, (old: CatListData) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((i: any) =>
+              i.influencerId === ctx?.tempId ? { ...i, influencerId: inf.id, influencer: inf } : i
+            ),
+          };
+        });
+      }
+    },
+    onSettled: () => {
       utils.influencer.list.invalidate();
       utils.influencer.getNiches.invalidate();
       utils.influencer.getCreators.invalidate();
+      utils.cardCategory.list.invalidate();
     },
   });
 }

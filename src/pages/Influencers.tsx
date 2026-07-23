@@ -22,7 +22,6 @@ import {
   useToggleCategoryPin,
   useSaveCategoryOrder,
   useSaveCardOrderInCategory,
-  useAssignCardToCategory,
 } from "@/lib/influencer-api";
 import InfluencerDetail from "@/components/InfluencerDetail";
 import InfluencerCard from "@/components/InfluencerCard";
@@ -93,7 +92,6 @@ export default function Influencers() {
   const togglePinMut = useToggleCategoryPin();
   const saveCatOrderMut = useSaveCategoryOrder();
   const saveCardOrderMut = useSaveCardOrderInCategory();
-  const assignCardMut = useAssignCardToCategory();
 
   const [newCatName, setNewCatName] = useState("");
   const [showNewCatInput, setShowNewCatInput] = useState(false);
@@ -139,13 +137,17 @@ export default function Influencers() {
 
   // Merge price data
   const latestPriceMap = useMemo(() => {
-    const map = new Map<number, { userPrice: number; adminPrice: number }>();
+    const map = new Map<number, { userPrice: number; adminPrice: number; userPriceLocal: number | null; userPriceCurrency: string | null }>();
     if (!allNegotiations) return map;
     for (const n of allNegotiations) {
       if (!n || n.influencerId == null) continue;
       const id = n.influencerId;
-      const existing = map.get(id) || { userPrice: 0, adminPrice: 0 };
-      if (n.userPrice > 0) existing.userPrice = n.userPrice;
+      const existing = map.get(id) || { userPrice: 0, adminPrice: 0, userPriceLocal: null, userPriceCurrency: null };
+      if (n.userPrice > 0) {
+        existing.userPrice = n.userPrice;
+        existing.userPriceLocal = n.userPriceLocal ?? null;
+        existing.userPriceCurrency = n.userPriceCurrency ?? null;
+      }
       if (n.adminPrice > 0) existing.adminPrice = n.adminPrice;
       map.set(id, existing);
     }
@@ -809,17 +811,10 @@ export default function Influencers() {
       <AddInfluencerModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onAdded={(inf: any) => {
+        onAdded={() => {
           setAddOpen(false);
-          // 新网红自动进入「审核中」分类，等待管理员填写审核报价后自动移出
-          if (inf?.id && categoryData?.categories && (categoryData.categories || []).length > 0) {
-            let targetCat = categoryData.categories.find((c: any) => c.name === "审核中");
-            if (!targetCat) targetCat = categoryData.categories.find((c: any) => c.name === "网红库");
-            if (!targetCat) targetCat = categoryData.categories[0];
-            if (targetCat) {
-              assignCardMut.mutate({ influencerId: inf.id, categoryId: targetCat.id });
-            }
-          }
+          // 服务端 influencer.create 已自动将新卡片移入「审核中」分类，
+          // 前端 useCreateInfluencer 乐观更新即时上屏，无需再调 assignCard
         }}
       />
     </div>

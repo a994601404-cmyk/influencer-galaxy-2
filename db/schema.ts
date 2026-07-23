@@ -50,6 +50,9 @@ export const influencers = mysqlTable("influencers", {
   // Pricing
   userPrice: int("userPrice").default(0),
   userPriceUpdatedAt: varchar("userPriceUpdatedAt", { length: 20 }),
+  // 原货币报价（非美元时记录用户填写原值，用于卡片括号展示）
+  userPriceLocal: int("userPriceLocal"),
+  userPriceCurrency: varchar("userPriceCurrency", { length: 8 }),
   adminPrice: int("adminPrice").default(0),
   adminPriceUpdatedAt: varchar("adminPriceUpdatedAt", { length: 20 }),
   coopStatus: mysqlEnum("coopStatus", ["pending", "cooperating", "not-cooperating"]).default("pending"),
@@ -78,6 +81,9 @@ export const negotiationRecords = mysqlTable("negotiationRecords", {
   round: int("round").notNull(),
   userPrice: int("userPrice").default(0),
   adminPrice: int("adminPrice").default(0),
+  // 原货币报价（非美元时记录用户填写原值）
+  userPriceLocal: int("userPriceLocal"),
+  userPriceCurrency: varchar("userPriceCurrency", { length: 8 }),
   notes: text("notes"),
   isTest: int("isTest").default(0), // 0 = production, 1 = test data
   createdAt: varchar("createdAt", { length: 20 }).notNull(), // YYYY-MM-DD

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCreateInfluencer, useCreateNegotiation } from "@/lib/influencer-api";
-import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, prefetchRates } from "@/lib/currency";
+import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, prefetchRates } from "@/lib/currency";
 import { COOP_TYPE_OPTIONS, coopTypesToJson, type CoopTypeItem } from "@/lib/coop-types";
 import { SELECTABLE_NICHES } from "@/lib/niche-map";
 import CountrySelect from "@/components/CountrySelect";
@@ -79,7 +79,7 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
 
   // Update USD preview when price or currency changes
   useEffect(() => {
-    const amount = parseInt(formLocalPrice) || 0;
+    const amount = parseAmountInput(formLocalPrice);
     if (amount > 0) {
       setUsdPreview(convertToUSDSync(amount, formCurrency));
       convertToUSD(amount, formCurrency).then(setUsdPreview).catch(() => {});
@@ -158,8 +158,9 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
     if (!formName.trim()) { setFormError("请填写名称"); return; }
     setFormError("");
     const validLinks = links.filter((l) => l.url.trim());
-    const localAmount = parseInt(formLocalPrice) || 0;
+    const localAmount = parseAmountInput(formLocalPrice);
     const usdPrice = localAmount > 0 ? await convertToUSD(localAmount, formCurrency) : 0;
+    const isForeign = formCurrency !== "USD" && localAmount > 0;
     createMutation.mutate({
       name: formName.trim(),
       handle: deriveHandle(formName, validLinks),
@@ -171,6 +172,8 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
       gender: formGender as any,
       profileUrl: validLinks.length > 0 ? JSON.stringify(validLinks.map((l) => ({ platform: l.platform, url: l.url.trim() }))) : null,
       userPrice: usdPrice,
+      userPriceLocal: isForeign ? localAmount : null,
+      userPriceCurrency: isForeign ? formCurrency : null,
       coopTypes: coopTypes.length > 0 ? coopTypesToJson(coopTypes) : null,
     }, {
       onSuccess: (inf) => {
@@ -179,6 +182,8 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
             influencerId: inf.id,
             userPrice: usdPrice,
             adminPrice: 0,
+            userPriceLocal: isForeign ? localAmount : null,
+            userPriceCurrency: isForeign ? formCurrency : null,
             notes: `添加网红 - 报价 ${formCurrency} ${formLocalPrice} = USD ${usdPrice}`,
             createdAt: nowBeijing(),
           });

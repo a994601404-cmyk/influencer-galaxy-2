@@ -259,6 +259,8 @@ export const influencerRouter = createRouter({
       gender: z.enum(["male", "female", "other"]).optional(),
       profileUrl: z.string().nullable().optional(),
       userPrice: z.number().optional(),
+      userPriceLocal: z.number().nullable().optional(),
+      userPriceCurrency: z.string().nullable().optional(),
       coopTypes: z.string().nullable().optional(),
       audienceGender: z.any().optional(),
       audienceAge: z.any().optional(),
@@ -282,6 +284,8 @@ export const influencerRouter = createRouter({
         profileUrl: input.profileUrl || null,
         userPrice: input.userPrice || 0,
         userPriceUpdatedAt: input.userPrice ? now : null,
+        userPriceLocal: input.userPriceLocal ?? null,
+        userPriceCurrency: input.userPriceCurrency ?? null,
         audienceGender: serializeJsonField(input.audienceGender),
         audienceAge: serializeJsonField(input.audienceAge),
         audienceDevices: serializeJsonField(input.audienceDevices),
@@ -291,6 +295,10 @@ export const influencerRouter = createRouter({
         isTest: ctx.testMode ? 1 : 0,
       });
       const insertId = Number(result[0].insertId);
+
+      // 新建网红在同一请求内直接进入创建者的「审核中」分类，
+      // 前端无需再单独调 assignCard（消除第二次往返，卡片秒上屏）
+      await moveIntoReview(insertId);
 
       // Notify admins: new influencer created
       try {

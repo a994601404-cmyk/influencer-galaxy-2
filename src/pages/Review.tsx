@@ -10,6 +10,7 @@ import {
 } from "@/lib/influencer-api";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
+import { formatQuoteUSD } from "@/lib/currency";
 import InfluencerDetail from "@/components/InfluencerDetail";
 import { ShieldCheck, Handshake, FileText, Video, BarChart3, MapPin, Hash } from "lucide-react";
 
@@ -75,7 +76,7 @@ function ReviewCard({ inf, creatorName, onClick }: { inf: any; creatorName?: str
         <div className="flex-1">
           <p className="text-[9px] text-faint">网红报价</p>
           <p className="text-sm font-bold text-brand">
-            {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : "—"}
+            {inf.userPrice > 0 ? formatQuoteUSD(inf.userPrice, inf.userPriceLocal, inf.userPriceCurrency) : "—"}
           </p>
         </div>
         <div className="flex-1">
@@ -136,13 +137,19 @@ export default function Review() {
   // Latest negotiation round per influencer — used for price display AND
   // for detecting a price quote that is still waiting for admin review
   const latestPriceMap = useMemo(() => {
-    const map = new Map<number, { userPrice: number; adminPrice: number }>();
+    const map = new Map<number, { userPrice: number; adminPrice: number; round?: number; userPriceLocal: number | null; userPriceCurrency: string | null }>();
     if (!allNegotiations) return map;
     for (const n of allNegotiations) {
       if (!n || n.influencerId == null) continue;
       const existing = map.get(n.influencerId);
-      if (!existing || n.round > existing.round) {
-        map.set(n.influencerId, { userPrice: n.userPrice ?? 0, adminPrice: n.adminPrice ?? 0, round: n.round });
+      if (!existing || n.round > (existing.round ?? 0)) {
+        map.set(n.influencerId, {
+          userPrice: n.userPrice ?? 0,
+          adminPrice: n.adminPrice ?? 0,
+          round: n.round,
+          userPriceLocal: n.userPriceLocal ?? null,
+          userPriceCurrency: n.userPriceCurrency ?? null,
+        });
       }
     }
     return map;
@@ -151,7 +158,7 @@ export default function Review() {
   const influencersWithPrices = useMemo(() => {
     return allInfluencers.map((inf: any) => {
       const prices = latestPriceMap.get(inf.id);
-      return prices ? { ...inf, userPrice: prices.userPrice, adminPrice: prices.adminPrice } : inf;
+      return prices ? { ...inf, userPrice: prices.userPrice, adminPrice: prices.adminPrice, userPriceLocal: prices.userPriceLocal, userPriceCurrency: prices.userPriceCurrency } : inf;
     });
   }, [allInfluencers, latestPriceMap]);
 

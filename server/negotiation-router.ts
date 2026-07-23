@@ -44,6 +44,8 @@ export const negotiationRouter = createRouter({
       influencerId: z.number(),
       userPrice: z.number().default(0),
       adminPrice: z.number().default(0),
+      userPriceLocal: z.number().nullable().optional(),
+      userPriceCurrency: z.string().nullable().optional(),
       notes: z.string().optional(),
       createdAt: z.string(),
     }))
@@ -64,6 +66,8 @@ export const negotiationRouter = createRouter({
         round: nextRound,
         userPrice: input.userPrice,
         adminPrice: input.adminPrice,
+        userPriceLocal: input.userPriceLocal ?? null,
+        userPriceCurrency: input.userPriceCurrency ?? null,
         notes: input.notes || null,
         isTest: isTestTarget,
         createdAt: input.createdAt,
@@ -75,8 +79,8 @@ export const negotiationRouter = createRouter({
         const rawConn = await getRawConnection();
         const nowStr = getBeijingTimeFull();
         await rawConn.execute(
-          `UPDATE influencers SET userPrice = ?, adminPrice = ?, userPriceUpdatedAt = ?, adminPriceUpdatedAt = ? WHERE id = ?`,
-          [input.userPrice, input.adminPrice, nowStr, nowStr, input.influencerId]
+          `UPDATE influencers SET userPrice = ?, adminPrice = ?, userPriceLocal = ?, userPriceCurrency = ?, userPriceUpdatedAt = ?, adminPriceUpdatedAt = ? WHERE id = ?`,
+          [input.userPrice, input.adminPrice, input.userPriceLocal ?? null, input.userPriceCurrency ?? null, nowStr, nowStr, input.influencerId]
         );
       } catch { /* ignore sync failure */ }
 
