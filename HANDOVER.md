@@ -87,6 +87,9 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **垃圾箱**：`trashList`（管理员看全部/用户看自己删的，按删除时间倒序）、`restore`（恢复原分类原位置）、
   `destroy`（物理删除，级联清理 negotiationRecords/scriptReviews/videoReviews/postRecords/cardCategoryItems）
 - update/updateUserPrice/hide 等写操作维持 admin-or-owner 校验
+- **assignCard owner 收口（07-23）**：目标分类必须归属当前用户（校验 cardCategories.userUnionId），
+  查询/更新卡片行限定在自己分类下（JOIN cardCategories），修复此前按 influencerId 裸 UPDATE
+  可能误改他人分类中同名卡片的隐患
 
 ## 网红页交互（2026-07-21 重写）
 - **乐观更新**：删除/隐藏/置顶/卡片排序/分类排序/移动分类全部 onMutate 乐观更新 + 失败回滚 + onSettled 失效同步，点击秒响应（src/lib/influencer-api.ts）
