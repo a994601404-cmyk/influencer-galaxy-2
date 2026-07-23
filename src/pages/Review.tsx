@@ -10,26 +10,20 @@ import {
 } from "@/lib/influencer-api";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
-import { formatQuoteUSD } from "@/lib/currency";
+import { displayCountry } from "@/lib/countries";
 import InfluencerDetail from "@/components/InfluencerDetail";
-import { ShieldCheck, Handshake, FileText, Video, BarChart3, MapPin, Hash } from "lucide-react";
+import { ShieldCheck, Handshake, FileText, Video, BarChart3 } from "lucide-react";
 
 const platformLabels: Record<string, string> = {
   instagram: "Instagram", tiktok: "TikTok", xiaohongshu: "小红书", douyin: "抖音",
 };
-
-function displayCountry(code: string): string {
-  const map: Record<string, string> = {
-    US: "美国", CN: "中国", HK: "中国香港", TW: "中国台湾", JP: "日本",
-    KR: "韩国", SG: "新加坡", MY: "马来西亚", TH: "泰国", VN: "越南",
-    ID: "印尼", PH: "菲律宾", UK: "英国", FR: "法国", DE: "德国",
-    IT: "意大利", ES: "西班牙", NL: "荷兰", BR: "巴西", CA: "加拿大",
-    AU: "澳大利亚", IN: "印度", MX: "墨西哥", RU: "俄罗斯",
-  };
-  return map[code] || code;
-}
+const platformAbbr: Record<string, string> = {
+  instagram: "IG", tiktok: "TT", xiaohongshu: "XHS", douyin: "DY",
+  Instagram: "IG", TikTok: "TT", 小红书: "XHS", 抖音: "DY",
+};
 
 // Read-only card for review mode — click opens the full detail dialog
+// 方案 A 布局：与网红页卡片同一视觉体系（零徽章元信息行 + 19px 双价格锚点）
 function ReviewCard({ inf, creatorName, onClick }: { inf: any; creatorName?: string; onClick: () => void }) {
   if (!inf || !inf.id) return null;
   const coopItems = parseCoopTypes(inf.coopTypes);
@@ -45,56 +39,53 @@ function ReviewCard({ inf, creatorName, onClick }: { inf: any; creatorName?: str
           由 <span className="text-brand font-semibold">{creatorName}</span> 提交
         </p>
       )}
-      <div className="flex gap-3">
+      <div className="flex items-center gap-3">
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}
-          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-line"
+          className="w-[46px] h-[46px] rounded-xl object-cover flex-shrink-0 border border-line"
         />
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-content truncate">{inf.name}</h3>
-          <p className="text-[11px] text-faint truncate">{inf.handle}</p>
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub">
-              {platformLabels[inf.platform] || inf.platform}
-            </span>
-            {inf.location && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5" />{displayCountry(inf.location)}
-              </span>
-            )}
-            {inf.niche && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
-                <Hash className="w-2.5 h-2.5" />{getNicheLabel(inf.niche)}
-              </span>
-            )}
-          </div>
+          <h3 className="text-[15px] font-extrabold text-content truncate leading-tight">{inf.name}</h3>
+          <p className="text-[11.5px] text-faint truncate">{inf.handle}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-line">
-        <div className="flex-1">
-          <p className="text-[9px] text-faint">网红报价</p>
-          <p className="text-sm font-bold text-brand">
-            {inf.userPrice > 0 ? formatQuoteUSD(inf.userPrice, inf.userPriceLocal, inf.userPriceCurrency) : "—"}
+      {/* 元信息行：平台 · 国家 · 领域（零徽章，点分隔） */}
+      <p className="text-[11.5px] text-sub mt-2.5 truncate">
+        {platformLabels[inf.platform] || inf.platform}
+        {inf.location && <><span className="text-faint mx-1.5">·</span>{displayCountry(inf.location)}</>}
+        {inf.niche && <><span className="text-faint mx-1.5">·</span>#{getNicheLabel(inf.niche)}</>}
+      </p>
+
+      {/* 价格区：双指标锚点 */}
+      <div className="flex gap-4 mt-3 pt-3 border-t border-line">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-faint font-medium">网红报价</p>
+          <p className="text-[19px] font-black text-brand leading-tight mt-0.5 truncate">
+            {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : <span className="text-[13px] font-semibold text-faint">—</span>}
           </p>
+          {inf.userPrice > 0 && inf.userPriceLocal && inf.userPriceCurrency && (
+            <p className="text-[10px] text-faint mt-0.5 truncate">{inf.userPriceLocal.toLocaleString()} {inf.userPriceCurrency}</p>
+          )}
         </div>
-        <div className="flex-1">
-          <p className="text-[9px] text-faint">审核报价</p>
-          <p className="text-sm font-bold text-cy">
-            {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : "—"}
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-faint font-medium">审核报价</p>
+          <p className="text-[19px] font-black text-cy leading-tight mt-0.5 truncate">
+            {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : <span className="text-[13px] font-semibold text-faint">待审核</span>}
           </p>
         </div>
       </div>
 
+      {/* 合作类型缩写行 */}
       {coopItems.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 mt-3">
           {coopItems.map((item) => (
-            <span key={item.platform} className="text-[9px] text-sub">
-              <span className="text-sub">{item.platform}</span>
+            <span key={item.platform} className="text-[10.5px] text-sub whitespace-nowrap">
+              <b className="font-semibold text-content">{platformAbbr[item.platform] || item.platform}</b>
               <span className="text-faint mx-0.5">·</span>
               {item.types.map((t) => (
-                <span key={t} className="text-brand/60 mr-1">{t}</span>
+                <span key={t} className="text-brand/70 mr-1">{t}</span>
               ))}
             </span>
           ))}
@@ -102,7 +93,7 @@ function ReviewCard({ inf, creatorName, onClick }: { inf: any; creatorName?: str
       )}
 
       {inf.bio && (
-        <p className="text-[10px] text-faint mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
+        <p className="text-[11px] text-faint mt-2 truncate">{inf.bio}</p>
       )}
     </div>
   );
@@ -234,7 +225,7 @@ export default function Review() {
   }, [influencersWithPrices, pricePendingIds, scriptPendingIds, videoPendingIds, postPendingIds]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1680px] mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-content flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-purple-400" />审核中心
@@ -273,7 +264,7 @@ export default function Review() {
       </p>
 
       {/* Read-only cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
         {filteredForReview.map((inf: any) => (
           <ReviewCard
             key={inf.id}

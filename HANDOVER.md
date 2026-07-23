@@ -131,6 +131,17 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **创建者展示**：管理员视角卡片右下角 `by 用户名` 高亮（InfluencerCard creatorName prop）；
   创建者筛选改为前端过滤（allInfluencers memo），下拉选项基于未筛选列表构建
 
+## 卡片设计：方案 A「极光名片」（2026-07-23 上线，三方案设计稿见仓库 card-design-preview.html）
+- **InfluencerCard / ReviewCard 同一视觉体系**：头像 46px + 15px 加粗名字；元信息零徽章
+  （平台 · 国旗国家 · #领域 点分隔一行）；价格区 19px 双指标锚点（网红报价 brand / 审核报价 cyan，
+  原货币缩为下方 10px 小注，待审核显示「待审核」而非 —）
+- **状态徽章收敛**：仅 审核中（琥珀呼吸点，按所在分类名判断）和 不合作（红色）显示；常规状态无徽章
+- **操作降噪**：低频操作（移动分类/隐藏/删除）合并进 ⋯ 菜单；信号灯无信号时不再显示灰点；
+  ‹ › 排序与置顶保留常驻；低频按钮 22px 紧凑化
+- **网格自适应**：网红页/审核页均为 `repeat(auto-fill, minmax(300px, 1fr))` + 页面 max-w-[1680px]，
+  桌面稳定 5 列（原 xl 固定 4 列在超宽屏卡片过宽）
+- 国家展示统一改用 @/lib/countries 的 displayCountry（带国旗），删除组件内重复的老映射
+
 ## 性能与准实时同步（2026-07-22，07-23 加强）
 - trpc.tsx QueryClient 全局 `staleTime: 60000`（07-23 由 15s 提高）+ `refetchOnWindowFocus: false`
 - **AppLayout 登录后后台预取** influencer.list/cardCategory/statusCounts/negotiation/scriptReview/

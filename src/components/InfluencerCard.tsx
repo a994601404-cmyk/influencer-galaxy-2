@@ -1,30 +1,24 @@
 import { useAuth } from "@/hooks/useAuth";
 import { getNicheLabel } from "@/lib/niche-map";
 import { parseCoopTypes } from "@/lib/coop-types";
-import { formatQuoteUSD } from "@/lib/currency";
 import { parseProfileLinks } from "@/lib/profile-links";
 import { getActiveSignals, subscribeToSignals } from "@/lib/signal-light";
+import { displayCountry } from "@/lib/countries";
 import { useState, useEffect } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
-  ExternalLink, Eye, EyeOff, Trash2, MapPin, Hash, Pin, ArrowRightLeft,
-  ChevronLeft, ChevronRight, Check, GripVertical,
+  ExternalLink, Eye, EyeOff, Trash2, Pin, ArrowRightLeft,
+  ChevronLeft, ChevronRight, Check, GripVertical, MoreHorizontal,
 } from "lucide-react";
 
 const platformLabels: Record<string, string> = {
   instagram: "Instagram", tiktok: "TikTok", xiaohongshu: "小红书", douyin: "抖音",
 };
-
-function displayCountry(code: string): string {
-  const map: Record<string, string> = {
-    US: "美国", CN: "中国", HK: "中国香港", TW: "中国台湾", JP: "日本",
-    KR: "韩国", SG: "新加坡", MY: "马来西亚", TH: "泰国", VN: "越南",
-    ID: "印尼", PH: "菲律宾", UK: "英国", FR: "法国", DE: "德国",
-    IT: "意大利", ES: "西班牙", NL: "荷兰", BR: "巴西", CA: "加拿大",
-    AU: "澳大利亚", IN: "印度", MX: "墨西哥", RU: "俄罗斯",
-  };
-  return map[code] || code;
-}
+// 合作类型行的平台缩写（降噪：整行压缩为一行文本）
+const platformAbbr: Record<string, string> = {
+  instagram: "IG", tiktok: "TT", xiaohongshu: "XHS", douyin: "DY",
+  Instagram: "IG", TikTok: "TT", 小红书: "XHS", 抖音: "DY",
+};
 
 interface InfluencerCardProps {
   inf: any;
@@ -55,7 +49,7 @@ interface InfluencerCardProps {
 function SignalDot({ type }: { type: string }) {
   const labels: Record<string, string> = { price: "谈价", script: "脚本", video: "视频" };
   return (
-    <span className="signal-blink w-3 h-3 rounded-full bg-lime inline-block mx-0.5"
+    <span className="signal-blink w-2.5 h-2.5 rounded-full bg-lime inline-block mx-0.5"
       title={`新${labels[type] || type}审核`} />
   );
 }
@@ -69,7 +63,7 @@ export default function InfluencerCard({
 }: InfluencerCardProps) {
   const { user } = useAuth();
   const [signals, setSignals] = useState<string[]>([]);
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const infId = inf?.id ?? 0;
   const isOwner = inf?.createdByUnionId === user?.unionId;
 
@@ -97,9 +91,14 @@ export default function InfluencerCard({
   }, [infId]);
 
   if (!inf || !inf.id) return null;
-  const hasAnySignal = signals.length > 0;
   const coopItems = parseCoopTypes(inf.coopTypes);
   const profileLinks = parseProfileLinks(inf.profileUrl);
+  const hasMenu = !batchMode && ((categories && categories.length > 1 && onMoveCategory) || isAdmin || canEdit);
+
+  // 状态徽章：不合作 > 审核中（所在分类名判断）；常规状态不显示徽章（降噪）
+  const currentCat = categories?.find((c: any) => c.id === currentCategoryId);
+  const inReview = currentCat?.name === "审核中";
+  const notCoop = inf.coopStatus === "not-cooperating";
 
   return (
     <div
@@ -135,13 +134,22 @@ export default function InfluencerCard({
         </div>
       )}
 
-      {/* Top-right: Pin + Signal light + Move + Actions */}
+      {/* Top-right: 状态徽章 + 信号灯 + 操作 */}
       {!batchMode && (
       <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+        {notCoop ? (
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 mr-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />不合作
+          </span>
+        ) : inReview ? (
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 mr-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />审核中
+          </span>
+        ) : null}
         {onMoveForward && (
           <button
             onClick={(e) => { e.stopPropagation(); onMoveForward(); }}
-            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
+            className="w-[22px] h-[22px] rounded-md bg-hover flex items-center justify-center text-faint hover:text-content transition-all"
             title="前移"
           >
             <ChevronLeft className="w-3 h-3" />
@@ -150,7 +158,7 @@ export default function InfluencerCard({
         {onMoveBackward && (
           <button
             onClick={(e) => { e.stopPropagation(); onMoveBackward(); }}
-            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
+            className="w-[22px] h-[22px] rounded-md bg-hover flex items-center justify-center text-faint hover:text-content transition-all"
             title="后移"
           >
             <ChevronRight className="w-3 h-3" />
@@ -158,7 +166,7 @@ export default function InfluencerCard({
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
+          className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-all ${
             isPinned
               ? "bg-lime/20 text-brand"
               : "bg-hover text-faint hover:text-brand hover:bg-lime/10"
@@ -168,135 +176,129 @@ export default function InfluencerCard({
           <Pin className={`w-3 h-3 ${isPinned ? "fill-lime" : ""}`} />
         </button>
 
-        <div className={`flex items-center rounded-full px-1 py-0.5 transition-all ${hasAnySignal ? "bg-black/60" : "bg-transparent"}`}>
-          {signals.length > 0 ? (
-            signals.map((s) => <SignalDot key={s} type={s} />)
-          ) : (
-            <span className="w-2 h-2 rounded-full bg-faint inline-block" title="暂无新审核" />
-          )}
-        </div>
+        {/* 信号灯：仅在有新审核信号时显示（无信号不再展示灰点） */}
+        {signals.length > 0 && (
+          <div className="flex items-center rounded-full px-1 py-0.5 bg-black/60">
+            {signals.map((s) => <SignalDot key={s} type={s} />)}
+          </div>
+        )}
 
-        {/* Move to category dropdown */}
-        {categories && categories.length > 1 && onMoveCategory && (
+        {/* 低频操作合并进 ⋯ 菜单：移动分类 / 隐藏 / 删除 */}
+        {hasMenu && (
           <div className="relative">
             <button
-              onClick={(e) => { e.stopPropagation(); setShowMoveMenu(!showMoveMenu); }}
-              className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
-              title="移动分类"
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+              className="w-[22px] h-[22px] rounded-md bg-hover flex items-center justify-center text-faint hover:text-content transition-all"
+              title="更多操作"
             >
-              <ArrowRightLeft className="w-3 h-3" />
+              <MoreHorizontal className="w-3 h-3" />
             </button>
-            {showMoveMenu && (
+            {showMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
-                <div className="absolute top-full right-0 mt-1 w-32 bg-elevated border border-line rounded-lg shadow-xl z-50 py-1">
-                  {categories.filter((c: any) => c.id !== currentCategoryId).map((cat: any) => (
+                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
+                <div className="absolute top-full right-0 mt-1 w-36 bg-elevated border border-line rounded-lg shadow-xl z-50 py-1">
+                  {categories && categories.length > 1 && onMoveCategory && (
+                    <>
+                      <p className="px-3 pt-1 pb-0.5 text-[10px] text-faint flex items-center gap-1"><ArrowRightLeft className="w-2.5 h-2.5" />移动到分类</p>
+                      {categories.filter((c: any) => c.id !== currentCategoryId).map((cat: any) => (
+                        <button
+                          key={cat.id}
+                          onClick={(e) => { e.stopPropagation(); onMoveCategory(cat.id); setShowMenu(false); }}
+                          className="w-full text-left px-3 py-1.5 text-xs text-sub hover:text-content hover:bg-hover transition-colors"
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                      <div className="h-px bg-line my-1" />
+                    </>
+                  )}
+                  {isAdmin && (
                     <button
-                      key={cat.id}
-                      onClick={(e) => { e.stopPropagation(); onMoveCategory(cat.id); setShowMoveMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-sub hover:text-content hover:bg-hover transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onToggleHide(); setShowMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-sub hover:text-content hover:bg-hover transition-colors flex items-center gap-1.5"
                     >
-                      {cat.name}
+                      {inf.hidden ? <><EyeOff className="w-3 h-3" />显示卡片</> : <><Eye className="w-3 h-3" />隐藏卡片</>}
                     </button>
-                  ))}
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(); setShowMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3 h-3" />删除卡片
+                    </button>
+                  )}
                 </div>
               </>
             )}
           </div>
         )}
-
-        {isAdmin && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleHide(); }}
-            className="w-6 h-6 rounded-md bg-hover flex items-center justify-center text-faint hover:text-content hover:bg-hover transition-all"
-            title={inf.hidden ? "显示" : "隐藏"}
-          >
-            {inf.hidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-          </button>
-        )}
-        {canEdit && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="w-6 h-6 rounded-md bg-red-500/10 flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-500/20 transition-all"
-            title="删除"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
-        )}
       </div>
       )}
 
-      {/* Main content */}
-      <div className={`flex gap-3 ${dragEnabled ? "pl-4" : ""}`}>
+      {/* 头部：头像 + 名字/handle */}
+      <div className={`flex items-center gap-3 ${dragEnabled ? "pl-4" : ""}`}>
         <img
           src={inf.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${inf.handle}`}
           alt={inf.name}
-          className={`w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-line ${batchMode ? "ml-6" : ""}`}
+          className={`w-[46px] h-[46px] rounded-xl object-cover flex-shrink-0 border border-line ${batchMode ? "ml-6" : ""}`}
         />
-        <div className="flex-1 min-w-0 pr-20">
-          <h3 className="text-sm font-bold text-content truncate">{inf.name}</h3>
-          <p className="text-[11px] text-faint truncate">{inf.handle}</p>
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub">
-              {platformLabels[inf.platform] || inf.platform}
-            </span>
-            {inf.location && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5" />{displayCountry(inf.location) || inf.location}
-              </span>
-            )}
-            {inf.niche && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-hover text-sub flex items-center gap-0.5">
-                <Hash className="w-2.5 h-2.5" />{getNicheLabel(inf.niche)}
-              </span>
-            )}
+        <div className="flex-1 min-w-0 pr-[104px]">
+          <h3 className="text-[15px] font-extrabold text-content truncate leading-tight">
+            {inf.name}
             {isOwner && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-lime/10 text-brand/80">我的</span>
+              <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded bg-lime/10 text-brand/80 align-middle">我的</span>
             )}
-          </div>
+          </h3>
+          <p className="text-[11.5px] text-faint truncate">{inf.handle}</p>
         </div>
       </div>
 
-      {/* Prices */}
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-line">
-        <div className="flex-1">
-          <p className="text-[9px] text-faint">网红报价</p>
-          <p className="text-sm font-bold text-brand">
-            {inf.userPrice > 0 ? formatQuoteUSD(inf.userPrice, inf.userPriceLocal, inf.userPriceCurrency) : "—"}
+      {/* 元信息行：平台 · 国家 · 领域（零徽章，点分隔） */}
+      <p className={`text-[11.5px] text-sub mt-2.5 truncate ${dragEnabled ? "pl-4" : ""}`}>
+        {platformLabels[inf.platform] || inf.platform}
+        {inf.location && <><span className="text-faint mx-1.5">·</span>{displayCountry(inf.location)}</>}
+        {inf.niche && <><span className="text-faint mx-1.5">·</span>#{getNicheLabel(inf.niche)}</>}
+      </p>
+
+      {/* 价格区：双指标锚点 */}
+      <div className="flex gap-4 mt-3 pt-3 border-t border-line">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-faint font-medium">网红报价</p>
+          <p className="text-[19px] font-black text-brand leading-tight mt-0.5 truncate">
+            {inf.userPrice > 0 ? `$${inf.userPrice.toLocaleString()}` : <span className="text-[13px] font-semibold text-faint">—</span>}
+          </p>
+          {inf.userPrice > 0 && inf.userPriceLocal && inf.userPriceCurrency && (
+            <p className="text-[10px] text-faint mt-0.5 truncate">{inf.userPriceLocal.toLocaleString()} {inf.userPriceCurrency}</p>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-faint font-medium">审核报价</p>
+          <p className="text-[19px] font-black text-cy leading-tight mt-0.5 truncate">
+            {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : <span className="text-[13px] font-semibold text-faint">待审核</span>}
           </p>
         </div>
-        <div className="flex-1">
-          <p className="text-[9px] text-faint">审核报价</p>
-          <p className="text-sm font-bold text-cy">
-            {inf.adminPrice > 0 ? `$${inf.adminPrice.toLocaleString()}` : "—"}
-          </p>
-        </div>
-        {inf.coopStatus === "not-cooperating" && (
-          <span className="text-[9px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-medium">不合作</span>
-        )}
       </div>
 
-      {/* Cooperation types */}
-      {coopItems.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+      {/* 备注（一行截断） */}
+      {inf.bio && (
+        <p className="text-[11px] text-faint mt-2.5 truncate">{inf.bio}</p>
+      )}
+
+      {/* 底行：合作类型缩写 + 主页链接图标 + 创建者 */}
+      <div className="flex items-center justify-between gap-2 mt-3">
+        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 min-w-0">
           {coopItems.map((item) => (
-            <span key={item.platform} className="text-[9px] text-sub">
-              <span className="text-sub">{item.platform}</span>
+            <span key={item.platform} className="text-[10.5px] text-sub whitespace-nowrap">
+              <b className="font-semibold text-content">{platformAbbr[item.platform] || item.platform}</b>
               <span className="text-faint mx-0.5">·</span>
               {item.types.map((t) => (
-                <span key={t} className="text-brand/60 mr-1">{t}</span>
+                <span key={t} className="text-brand/70 mr-1">{t}</span>
               ))}
             </span>
           ))}
         </div>
-      )}
-
-      {inf.bio && (
-        <p className="text-[10px] text-faint mt-2 line-clamp-2 leading-relaxed">{inf.bio}</p>
-      )}
-
-      {profileLinks.length > 0 && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {profileLinks.map((link, i) => (
             <a
               key={`${link.url}-${i}`}
@@ -304,22 +306,19 @@ export default function InfluencerCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-[10px] text-cy/60 hover:text-cy transition-colors"
+              title={link.platform}
+              className="w-5 h-5 rounded-md bg-hover flex items-center justify-center text-cy/70 hover:text-cy transition-colors"
             >
-              <ExternalLink className="w-3 h-3" />{link.platform}
+              <ExternalLink className="w-3 h-3" />
             </a>
           ))}
+          {creatorName && (
+            <span className="text-[10px] font-bold text-brand bg-lime/10 px-1.5 py-0.5 rounded whitespace-nowrap">
+              by {creatorName}
+            </span>
+          )}
         </div>
-      )}
-
-      {/* 创建者（右下角高亮） */}
-      {creatorName && (
-        <div className="flex justify-end mt-2">
-          <span className="text-[9px] font-semibold text-brand/90 bg-lime/10 px-1.5 py-0.5 rounded">
-            by {creatorName}
-          </span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -408,7 +408,7 @@ export default function Influencers() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1680px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -633,7 +633,7 @@ export default function Influencers() {
 
             {/* Cards grid */}
             {cat.isExpanded && (
-              <CategoryDropZone categoryId={cat.id} className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <CategoryDropZone categoryId={cat.id} className="p-3 grid gap-3 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
                 {cat.items.map((item: any, itemIndex: number) => (
                   <InfluencerCard
                     key={item.id}
