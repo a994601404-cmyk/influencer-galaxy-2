@@ -18,6 +18,10 @@
 - 旧历史备份分支: `backup/pre-vercel-fix`
 
 ## 部署流程（现行）
+- ⚠️ **含新列的部署必须先跑 ALTER 再推送**（2026-07-23 教训）：TiDB Web 控制台一次只执行光标
+  所在语句，批量粘贴多条 ALTER 会静默漏跑；上线新列代码前用 information_schema.COLUMNS
+  诊断查询验证列已存在（预期行数写在上线的消息里）。influencers.userPriceLocal/userPriceCurrency
+  曾因漏跑 ALTER 导致添加网红线上报错
 1. 每次改动线上正式版前必须过 **TOTP 验证码闸门**：`node scripts/deploy-gate.mjs verify <6位码>`
    （种子在所有者设备 `~/.influencer-galaxy-secure/deploy-gate.json`，600 权限，不进 git）
 2. 验证通过 → `git push origin main` → Vercel 自动部署约 75 秒 → curl 验证
