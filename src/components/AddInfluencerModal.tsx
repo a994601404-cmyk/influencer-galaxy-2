@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useCreateInfluencer, useCreateNegotiation } from "@/lib/influencer-api";
+import { trpc } from "@/providers/trpc";
 import { CURRENCY_OPTIONS, convertToUSD, convertToUSDSync, parseAmountInput, getExchangeRate, prefetchRates } from "@/lib/currency";
 import { COOP_TYPE_OPTIONS, coopTypesToJson, type CoopTypeItem } from "@/lib/coop-types";
 import { SELECTABLE_NICHES } from "@/lib/niche-map";
 import CountrySelect from "@/components/CountrySelect";
 import {
-  Plus, X, Loader2, AlertCircle, Trash2, Link2,
+  Plus, X, Loader2, AlertCircle, AlertTriangle, Trash2, Link2,
 } from "lucide-react";
 
 interface Props {
@@ -71,6 +72,10 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
   const [formBio, setFormBio] = useState("");
 
   const [formError, setFormError] = useState("");
+  // 查重：预检 loading + 命中后的确认弹窗
+  const [checkingDup, setCheckingDup] = useState(false);
+  const [dupMatches, setDupMatches] = useState<any[] | null>(null);
+  const utils = trpc.useUtils();
 
   // Prefetch exchange rates when modal opens
   useEffect(() => {
@@ -158,6 +163,22 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
     if (!formName.trim()) { setFormError("请填写名称"); return; }
     setFormError("");
     const validLinks = links.filter((l) => l.url.trim());
+    const profileUrlStr = validLinks.length > 0
+      ? JSON.stringify(validLinks.map((l) => ({ platform: l.platform, url: l.url.trim() })))
+      : null;
+    // 服务端预检查重（预检失败不阻断，create 接口有服务端兜底）
+    setCheckingDup(true);
+    let matches: any[] = [];
+    try {
+      const res = await utils.influencer.checkDuplicate.fetch({ name: formName.trim(), profileUrl: profileUrlStr });
+      matches = (res?.matches as any[]) || [];
+    } catch { /* fall through */ } finally { setCheckingDup(false); }
+    if (matches.length > 0) { setDupMatches(matches); return; }
+    doCreate(false);
+  };
+
+  const doCreate = async (force: boolean) => {
+    const validLinks = links.filter((l) => l.url.trim());
     const localAmount = parseAmountInput(formLocalPrice);
     const usdPrice = localAmount > 0 ? await convertToUSD(localAmount, formCurrency) : 0;
     const isForeign = formCurrency !== "USD" && localAmount > 0;
@@ -178,6 +199,7 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
       userPriceLocal: isForeign ? localAmount : null,
       userPriceCurrency: isForeign ? formCurrency : null,
       coopTypes: coopTypes.length > 0 ? coopTypesToJson(coopTypes) : null,
+      force,
     }, {
       onSuccess: (inf) => {
         if (usdPrice > 0) {
@@ -382,14 +404,69 @@ export default function AddInfluencerModal({ open, onClose, onAdded }: Props) {
               className="flex-1 py-2.5 rounded-xl border border-line text-faint text-sm font-medium hover:bg-hover transition-all">
               取消
             </button>
-            <button type="submit" disabled={createMutation.isPending}
+            <button type="submit" disabled={createMutation.isPending || checkingDup}
               className="flex-1 btn-lime flex items-center justify-center gap-2 py-2.5 disabled:opacity-50">
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              添加
+              {createMutation.isPending || checkingDup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {checkingDup ? "查重中…" : "添加"}
             </button>
           </div>
         </form>
       </div>
+
+      {/* ── 查重命中确认弹窗（分级：链接=强匹配，名称=弱匹配）── */}
+      {dupMatches && (() => {
+        const linkMatches = dupMatches.filter((m) => m.matchType === "link");
+        const nameMatches = dupMatches.filter((m) => m.matchType === "name");
+        const selfLinkOnly = dupMatches.every((m) => m.isSelf && m.matchType === "link");
+        const hasCrossUserLink = linkMatches.some((m) => !m.isSelf);
+        const matchLine = (m: any) => {
+          const cat = m.categoryName || "未分类";
+          if (m.matchType === "link") {
+            if (m.isSelf) return `你已创建过「${m.name}」（主页链接相同），无需重复添加`;
+            if (m.notCooperating) return `「${m.name}」曾被 ${m.creatorName} 对接，现已标记为不合作，添加前请知悉`;
+            return `「${m.name}」正在由 ${m.creatorName} 对接，目前处于 ${cat} 状态，请与相关人员确认！`;
+          }
+          if (m.isSelf) return `你已有同名卡片「${m.name}」（处于 ${cat}），请确认是否为同一人`;
+          return `同名网红「${m.name}」由 ${m.creatorName} 创建，处于 ${cat} 状态，请确认是否为同一人`;
+        };
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDupMatches(null)} />
+            <div className="relative w-full max-w-[480px] mx-4 bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4">
+              <h3 className="text-base font-black text-content flex items-center gap-2">
+                <AlertTriangle className={`w-5 h-5 ${linkMatches.length > 0 ? "text-amber-500" : "text-cy"}`} />
+                {linkMatches.length > 0 ? "检测到重复网红" : "发现同名网红"}
+              </h3>
+              <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                {dupMatches.map((m, i) => (
+                  <div key={`${m.influencerId}-${i}`}
+                    className={`p-3 rounded-xl text-xs leading-relaxed border ${
+                      m.matchType === "link"
+                        ? "bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300"
+                        : "bg-hover border-line text-sub"
+                    }`}>
+                    {matchLine(m)}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setDupMatches(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-line text-faint text-sm font-medium hover:bg-hover transition-all">
+                  {selfLinkOnly ? "知道了" : "取消"}
+                </button>
+                {!selfLinkOnly && (
+                  <button type="button" disabled={createMutation.isPending}
+                    onClick={() => { setDupMatches(null); doCreate(true); }}
+                    className="flex-1 btn-lime flex items-center justify-center gap-2 py-2.5 disabled:opacity-50">
+                    {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {hasCrossUserLink ? "已与对方确认，仍然添加" : "继续添加"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

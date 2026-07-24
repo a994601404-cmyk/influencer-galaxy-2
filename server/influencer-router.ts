@@ -5,6 +5,93 @@ import { influencers, negotiationRecords } from "../db/schema.js";
 import { eq, ne, like, and, desc, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification, getAdminUnionIds, getBeijingTimeFull } from "./notification-router.js";
+import { extractKeysFromProfileUrl, normalizeNameKey } from "./lib/link-normalize.js";
+
+// ─── 去重机制（2026-07-24）────────────────────────────────────
+// 跨用户匹配全站卡片（垃圾箱 hidden=2 除外），防止多人对接同一网红撞车。
+// 只向外暴露最小信息：卡片名称、创建者用户名、创建者视角的分类状态；
+// 报价/备注/谈价记录等一律不泄露。
+export interface DuplicateMatch {
+  influencerId: number;
+  name: string;
+  matchType: "link" | "name"; // link=平台+handle 相同（强）；name=仅名称相同（弱）
+  isSelf: boolean;            // 是否撞上自己已创建的卡
+  creatorUnionId: string;
+  creatorName: string;
+  categoryName: string | null; // 创建者视角的分类名（审核中/对接中/...），无则为 null
+  notCooperating: boolean;    // 创建者已标记不合作
+}
+
+export async function findDuplicates(opts: {
+  name: string;
+  profileUrl: string | null | undefined;
+  selfUnionId: string;
+  testMode?: boolean;
+}): Promise<DuplicateMatch[]> {
+  const conn = await getRawConnection();
+  let sqlText = `SELECT id, name, profileUrl, createdByUnionId, coopStatus FROM influencers WHERE hidden != 2`;
+  if (!opts.testMode) sqlText += ` AND isTest = 0`;
+  const [rows] = await conn.execute(sqlText);
+
+  const newKeys = new Set(extractKeysFromProfileUrl(opts.profileUrl));
+  const nameKey = normalizeNameKey(opts.name);
+  const linkRows: any[] = [];
+  const nameRows: any[] = [];
+  for (const r of rows as any[]) {
+    if (newKeys.size > 0 && extractKeysFromProfileUrl(r.profileUrl).some((k) => newKeys.has(k))) {
+      linkRows.push(r);
+    } else if (nameKey && normalizeNameKey(r.name || "") === nameKey) {
+      nameRows.push(r);
+    }
+  }
+  const combined = [
+    ...linkRows.map((r) => ({ r, t: "link" as const })),
+    ...nameRows.map((r) => ({ r, t: "name" as const })),
+  ];
+  if (combined.length === 0) return [];
+
+  // 创建者用户名（name → email → unionId 依次兜底）
+  const creatorIds = [...new Set(combined.map((m) => String(m.r.createdByUnionId || "")))].filter(Boolean);
+  const nameMap = new Map<string, string>();
+  if (creatorIds.length > 0) {
+    const [users] = await conn.execute(
+      `SELECT unionId, name, email FROM users WHERE unionId IN (${creatorIds.map(() => "?").join(",")})`,
+      creatorIds
+    );
+    for (const u of users as any[]) {
+      nameMap.set(String(u.unionId), u.name || u.email || String(u.unionId));
+    }
+  }
+
+  // 创建者视角的分类状态
+  const infIds = combined.map((m) => Number(m.r.id));
+  const catMap = new Map<string, string>();
+  if (infIds.length > 0) {
+    const [catRows] = await conn.execute(
+      `SELECT c.influencerId, cat.userUnionId, cat.name FROM cardCategoryItems c
+       JOIN cardCategories cat ON cat.id = c.categoryId
+       WHERE c.influencerId IN (${infIds.map(() => "?").join(",")})`,
+      infIds
+    );
+    for (const c of catRows as any[]) {
+      catMap.set(`${c.influencerId}:${c.userUnionId}`, c.name);
+    }
+  }
+
+  return combined.map(({ r, t }) => {
+    const creator = String(r.createdByUnionId || "");
+    return {
+      influencerId: Number(r.id),
+      name: r.name,
+      matchType: t,
+      isSelf: creator === opts.selfUnionId,
+      creatorUnionId: creator,
+      creatorName: nameMap.get(creator) || creator,
+      categoryName: catMap.get(`${r.id}:${creator}`) || null,
+      notCooperating: r.coopStatus === "not-cooperating",
+    };
+  });
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 function serializeJsonField<T>(val: T | null | undefined): string | null {
@@ -245,6 +332,22 @@ export const influencerRouter = createRouter({
       return toDbRecord(row);
     }),
 
+  // ─── 查重（添加前的服务端预检，前端不可绕过）─────────────────
+  checkDuplicate: authedQuery
+    .input(z.object({
+      name: z.string().min(1),
+      profileUrl: z.string().nullable().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const matches = await findDuplicates({
+        name: input.name,
+        profileUrl: input.profileUrl,
+        selfUnionId: ctx.user.unionId,
+        testMode: ctx.testMode,
+      });
+      return { matches };
+    }),
+
   // ─── Create ────────────────────────────────────────────────
   create: authedQuery
     .input(z.object({
@@ -266,8 +369,25 @@ export const influencerRouter = createRouter({
       audienceAge: z.any().optional(),
       audienceDevices: z.any().optional(),
       topPosts: z.any().optional(),
+      force: z.boolean().optional(), // 查重弹窗确认后放行（"自己同链接"的纯重复仍阻断）
     }))
     .mutation(async ({ input, ctx }) => {
+      // 服务端强制查重：前端预检可被绕过，这里兜底
+      const dupMatches = await findDuplicates({
+        name: input.name,
+        profileUrl: input.profileUrl,
+        selfUnionId: ctx.user.unionId,
+        testMode: ctx.testMode,
+      });
+      if (dupMatches.length > 0) {
+        const selfLink = dupMatches.some((m) => m.isSelf && m.matchType === "link");
+        if (selfLink) {
+          throw new TRPCError({ code: "CONFLICT", message: "你已创建过该网红（主页链接相同），无需重复添加" });
+        }
+        if (!input.force) {
+          throw new TRPCError({ code: "CONFLICT", message: "检测到重复网红，请先与相关人员确认" });
+        }
+      }
       const db = getDb();
       const now = getBeijingTimeFull();
       const result = await db.insert(influencers).values({

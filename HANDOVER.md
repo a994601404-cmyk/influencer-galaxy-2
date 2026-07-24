@@ -135,6 +135,20 @@ social / config / invitation / post / hashtag / cardPreference / cardCategory
 - **链接平台下拉**：LINK_PLATFORM_OPTIONS 移除小红书/抖音（AddInfluencerModal/EditInfluencerModal），
   存量小红书/抖音链接正常显示（回退通用图标）；网红主平台 enum（xiaohongshu/douyin）未动
 
+## 去重机制（2026-07-24 上线）
+- **目的**：跨用户防撞车——同一网红被多人同时对接。匹配范围是全站卡片（垃圾箱 hidden=2 除外，
+  isTest 过滤与 list 一致）；只暴露最小信息（卡片名称/创建者用户名/创建者视角分类状态），
+  报价备注等不泄露
+- **归一化比对键**（server/lib/link-normalize.ts，纯函数可 node 单测）：
+  已知平台链接 → `平台:handle`（instagram:foo，容错协议/www/@/大小写/尾斜杠/utm 参数）；
+  未知平台 → `url:host/path` 兜底；名称 → 去空白+小写
+- **分级**：链接键相同=强匹配（弹窗警告「该网红正在由 X 对接，目前处于 Y 状态，请与相关人员确认！」，
+  确认后 force=true 放行）；仅名称相同=弱匹配（轻提示可继续）；自己撞自己同链接=直接阻断无 force 出路
+- **不合作话术**：匹配卡被创建者标记不合作时提示「曾被 X 对接，现已标记为不合作」，不阻断
+- **实现**：`influencer.checkDuplicate`（前端提交前预检，失败不阻断）+ `influencer.create`
+  服务端强制查重兜底（CONFLICT 错误）；force=true 仅放行跨用户/弱匹配，
+  findDuplicates 为共享导出函数
+
 ## 「审核中」锁定分类（2026-07-22 新增，07-23 完善流转）
 - 默认置顶分类，cardCategory.list 服务端兜底：0 分类用户建 4 个默认分类（审核中/对接中/已发布/网红库）；
   已有分类但缺「审核中」的老用户自动 insert 到 minOrder-1 置顶位
